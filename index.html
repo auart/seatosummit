@@ -10,15 +10,19 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    html, body { height: 100%; margin: 0; background: #000; }
-    body { overflow: hidden; user-select: none; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+    }
+    body {
+      overflow: hidden;
+      user-select: none;
+    }
 
-    /* Fullscreen wrapper */
     #app {
       position: fixed;
       inset: 0;
-      display: grid;
-      place-items: center;
       background: #000;
     }
 
@@ -31,31 +35,35 @@
       background: #000;
       opacity: 1;
       transition: opacity 600ms ease;
+      z-index: 50;
     }
     #startScreen.hidden {
       opacity: 0;
       pointer-events: none;
     }
 
-    /* Scaled stage that matches Illustrator */
+    /* Stage wrapper fills screen */
     #stageWrap {
-      position: absolute;
+      position: fixed;
       inset: 0;
-      display: grid;
-      place-items: center;
+      background: #000;
       opacity: 0;
       transition: opacity 900ms ease;
       pointer-events: none;
+      z-index: 10;
     }
     #stageWrap.visible {
       opacity: 1;
       pointer-events: auto;
     }
 
+    /* 1920x1080 stage, centered by transform in JS */
     #stage {
       width: 1920px;
       height: 1080px;
-      position: relative;
+      position: absolute;
+      left: 50%;
+      top: 50%;
       transform-origin: center center;
     }
 
@@ -72,7 +80,10 @@
       height: 100%;
       object-fit: cover;
       image-rendering: pixelated;
+      opacity: 0;
+      transition: opacity 900ms ease;
     }
+    #sceneImage.visible { opacity: 1; }
 
     /* Water overlay animation */
     #waterOverlay {
@@ -81,14 +92,17 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      opacity: 0.75;
+      opacity: 0;
+      transition: opacity 900ms ease;
       image-rendering: pixelated;
       animation: waterDrift 6s linear infinite;
       will-change: transform;
     }
+    #waterOverlay.visible { opacity: 0.75; }
+
     @keyframes waterDrift {
       0%   { transform: translateX(-16px); }
-      50%  { transform: translateX(22px); }
+      50%  { transform: translateX(24px); }
       100% { transform: translateX(-16px); }
     }
 
@@ -104,21 +118,19 @@
     }
     #frameImage.visible { opacity: 1; }
 
-    /* Logo */
+    /* Logo, centered */
     #logo {
       position: absolute;
       left: 50%;
       top: 310px;
       transform: translateX(-50%);
       width: 980px;
-      max-width: 980px;
       image-rendering: pixelated;
       opacity: 0;
       transition: opacity 900ms ease;
       pointer-events: none;
     }
     #logo.visible { opacity: 1; }
-    #logo.fadingOut { opacity: 0; transition: opacity 900ms ease; }
 
     /* Buttons */
     .btn {
@@ -128,7 +140,6 @@
       background: transparent;
       cursor: pointer;
       outline: none;
-      transform: translateZ(0);
     }
     .btn img {
       display: block;
@@ -142,39 +153,17 @@
       font-family: "Press Start 2P", system-ui, sans-serif;
       font-size: 28px;
       color: #2b1607;
-      text-shadow: 0 1px 0 rgba(255,255,255,0.25);
       pointer-events: none;
+      text-align: center;
+      padding: 0 18px;
+      line-height: 1.2;
     }
 
-    /* Start button centered on black */
-    #beginBtn {
-      width: 520px;
-      height: 150px;
-    }
+    /* Begin button centered on black */
+    #beginBtn { width: 520px; height: 150px; }
     #beginBtn img { width: 520px; height: 150px; }
 
-    /* Choice button */
-    #choiceBtnWrap {
-      position: absolute;
-      left: 50%;
-      top: 850px;
-      transform: translateX(-50%);
-      opacity: 0;
-      transition: opacity 700ms ease;
-      pointer-events: none;
-    }
-    #choiceBtnWrap.visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    #choiceBtn {
-      width: 620px;
-      height: 150px;
-    }
-    #choiceBtn img { width: 620px; height: 150px; }
-    #choiceBtn span { font-size: 22px; }
-
-    /* Dialogue text in your frame text box area */
+    /* Dialogue inside the frame text area */
     #dialogue {
       position: absolute;
       left: 460px;
@@ -191,7 +180,6 @@
     }
     #dialogue.visible { opacity: 1; }
 
-    /* Click hint */
     #dialogueHint {
       position: absolute;
       left: 460px;
@@ -205,6 +193,27 @@
       pointer-events: none;
     }
     #dialogueHint.visible { opacity: 1; }
+
+    /* Choice button UNDER the frame */
+    #choiceBtnWrap {
+      position: absolute;
+      left: 50%;
+      top: 1080px;
+      transform: translateX(-50%);
+      margin-top: 24px;
+      opacity: 0;
+      transition: opacity 700ms ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #choiceBtnWrap.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #choiceBtn { width: 620px; height: 150px; }
+    #choiceBtn img { width: 620px; height: 150px; }
+    #choiceBtn span { font-size: 22px; }
   </style>
 </head>
 
@@ -255,13 +264,25 @@
     const BASE_W = 1920;
     const BASE_H = 1080;
 
+    const stage = document.getElementById("stage");
+
+    function scaleStage() {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const s = Math.min(vw / BASE_W, vh / BASE_H);
+      stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+    }
+    window.addEventListener("resize", scaleStage);
+    scaleStage();
+
     const startScreen = document.getElementById("startScreen");
     const stageWrap = document.getElementById("stageWrap");
-    const stage = document.getElementById("stage");
 
     const beginBtn = document.getElementById("beginBtn");
     const music = document.getElementById("music");
 
+    const sceneImage = document.getElementById("sceneImage");
+    const waterOverlay = document.getElementById("waterOverlay");
     const frameImage = document.getElementById("frameImage");
     const logo = document.getElementById("logo");
 
@@ -273,21 +294,11 @@
 
     const introText = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
 
-    function scaleStage() {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const s = Math.min(vw / BASE_W, vh / BASE_H);
-      stage.style.transform = `scale(${s})`;
-    }
-    window.addEventListener("resize", scaleStage);
-    scaleStage();
-
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
     function fadeInMusic(durationMs = 1800, targetVol = 1.0) {
       music.volume = 0;
       const start = performance.now();
-
       const step = (t) => {
         const p = Math.min(1, (t - start) / durationMs);
         music.volume = targetVol * p;
@@ -305,7 +316,7 @@
       typing = false;
     }
 
-    function typewriter(text, cps = 40) {
+    function typewriter(text, cps = 38) {
       clearTyping();
       typing = true;
       typedAll = false;
@@ -323,7 +334,6 @@
           typing = false;
           typedAll = true;
           dialogueHint.classList.remove("visible");
-          // Fade in choice button
           choiceBtnWrap.classList.add("visible");
         }
       };
@@ -340,45 +350,35 @@
     }
 
     beginBtn.addEventListener("click", async () => {
-      // Start audio, then fade volume in
-      try {
-        await music.play();
-      } catch (e) {
-        // If play fails, the user can click again and it will work
-      }
+      try { await music.play(); } catch (e) {}
       fadeInMusic(1800, 1.0);
 
-      // Fade out start screen
       startScreen.classList.add("hidden");
-
-      // Fade in stage
       stageWrap.classList.add("visible");
 
-      // Fade in frame
+      await sleep(150);
+      sceneImage.classList.add("visible");
+      waterOverlay.classList.add("visible");
+
       await sleep(250);
       frameImage.classList.add("visible");
 
-      // Fade in logo
       await sleep(600);
       logo.classList.add("visible");
 
-      // Hold logo 3s, then fade out
       await sleep(3000);
-      logo.classList.add("fadingOut");
+      logo.classList.remove("visible");
 
-      // Show dialogue and start typewriter
       await sleep(700);
       dialogue.classList.add("visible");
       dialogueHint.classList.add("visible");
       typewriter(introText, 38);
     });
 
-    // Click dialogue to finish typing
     dialogue.addEventListener("click", () => {
       if (!typedAll) finishTypingInstant();
     });
 
-    // Go to page 2
     choiceBtn.addEventListener("click", () => {
       window.location.href = "start2.html";
     });
