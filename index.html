@@ -1,352 +1,388 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Sea to Summit</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sea to Summit</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden; /* no scroll */
+      background: #000;
+    }
 
-<style>
-html, body{
-  margin:0;
-  padding:0;
-  width:100%;
-  height:100%;
-  background:black;
-  overflow:hidden;
-}
+    /* main stage, 1920x1080, scaled to fit screen */
+    .stage-wrap {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+    }
 
-/* Scale the whole game as one unit */
-#stage{
-  position:fixed;
-  left:50%;
-  top:50%;
-  width:1920px;
-  height:1080px;
-  transform:translate(-50%, -50%) scale(1);
-  transform-origin:center center;
-}
+    .stage {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: center center;
+    }
 
-/* ---------- START SCREEN ---------- */
-#startScreen{
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:black;
-  z-index:999;
-}
+    /* scale stage to fit window */
+    @media (max-aspect-ratio: 16/9) {
+      .stage { transform: scale(calc(100vw / 1920)); }
+    }
+    @media (min-aspect-ratio: 16/9) {
+      .stage { transform: scale(calc(100vh / 1080)); }
+    }
 
-#beginBtn{
-  background:none;
-  border:none;
-  padding:0;
-  cursor:pointer;
-  position:relative;
-}
+    /* layers */
+    .layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      pointer-events: none;
+    }
 
-#beginBtn img{
-  display:block;
-  image-rendering:pixelated;
-  height:120px;
-}
+    /* start button */
+    .start-screen {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      opacity: 1;
+      transition: opacity 600ms ease;
+    }
 
-#beginBtn span{
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-family:"Press Start 2P";
-  font-size:20px;
-  color:#3a240f;
-  pointer-events:none;
-}
+    .btn {
+      position: relative;
+      width: 420px;
+      height: 150px;
+      cursor: pointer;
+      user-select: none;
+    }
 
-/* ---------- FRAME WRAPPER (CENTERED) ---------- */
-/* These are your Illustrator window numbers */
-#frameWrapper{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%, -50%);
-  width:1920px;
-  height:1080px;
-  opacity:0;
-  transition: opacity 900ms ease;
-}
+    .btn img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      image-rendering: pixelated;
+    }
 
-/* Frame image is exact 1920x1080 */
-#frameImg{
-  position:absolute;
-  left:0;
-  top:0;
-  width:1920px;
-  height:1080px;
-  image-rendering:pixelated;
-  pointer-events:none;
-  z-index:5;
-}
+    .btn .label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: monospace;
+      font-size: 44px;
+      color: #2b1b10;
+      letter-spacing: 1px;
+    }
 
-/* Logo image is exact 1920x1080 */
-#logoImg{
-  position:absolute;
-  left:0;
-  top:0;
-  width:1920px;
-  height:1080px;
-  image-rendering:pixelated;
-  pointer-events:none;
-  opacity:0;
-  transition: opacity 900ms ease;
-  z-index:6;
-}
+    /* reveal group */
+    .reveal {
+      opacity: 0;
+      transition: opacity 900ms ease;
+    }
 
-/* ---------- WINDOW OPENING (POSITIONED INSIDE FRAME) ---------- */
-/* Your measured opening coords */
-#window{
-  position:absolute;
-  left:963.8801px;
-  top:440.1124px;
-  width:919.8045px;
-  height:607.4107px;
-  overflow:hidden;
-  z-index:1;
-}
+    .visible {
+      opacity: 1 !important;
+    }
 
-/* The key fix: center the image inside the window */
-#sceneImage, #waterOverlay{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%, -50%);
-  min-width:100%;
-  min-height:100%;
-  image-rendering:pixelated;
-}
+    /* frame */
+    #frameImg {
+      image-rendering: pixelated;
+    }
 
-/* Water overlay animation */
-#waterOverlay{
-  opacity:0.35;
-  pointer-events:none;
-  animation: waterMove 6s linear infinite;
-}
+    /* window numbers from Illustrator */
+    :root {
+      --win-x: 963.8801px;
+      --win-y: 440.1124px;
+      --win-w: 919.8045px;
+      --win-h: 607.4107px;
+    }
 
-@keyframes waterMove{
-  0%   { transform: translate(-50%, -50%) translateX(0); }
-  50%  { transform: translate(-50%, -50%) translateX(-12px); }
-  100% { transform: translate(-50%, -50%) translateX(0); }
-}
+    /* picture viewport inside the frame */
+    .picture-window {
+      position: absolute;
+      left: var(--win-x);
+      top: var(--win-y);
+      width: var(--win-w);
+      height: var(--win-h);
+      overflow: hidden;
+      pointer-events: none;
+    }
 
-/* ---------- TEXT BOX (POSITIONED) ---------- */
-/* Your measured textbox coords */
-#dialogueWrap{
-  position:absolute;
-  left:965.8681px;
-  top:862.4154px;
-  width:813.4602px;
-  height:83.053px;
-  opacity:0;
-  transition:opacity 500ms ease;
-  overflow:hidden;
-  z-index:10;
-}
+    .picture-window img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover; /* fill the window */
+      image-rendering: pixelated;
+    }
 
-#dialogue{
-  font-family:Silkscreen, monospace;
-  font-size:20px;
-  line-height:1.4;
-  color:#3a240f;
-  cursor:pointer;
-}
+    /* waves overlay, slightly bigger so movement doesn't reveal edges */
+    .waves {
+      position: absolute;
+      left: -40px;
+      top: 0;
+      width: calc(100% + 80px);
+      height: 100%;
+      opacity: 0.9;
+      mix-blend-mode: screen;
+      animation: wavesSlide 2.8s ease-in-out infinite alternate;
+    }
 
-/* ---------- CHOICE BUTTON ---------- */
-#lookAroundWrap{
-  position:absolute;
-  left:50%;
-  top:930px;
-  transform:translateX(-50%);
-  opacity:0;
-  transition:opacity 600ms ease;
-  pointer-events:none;
-  z-index:20;
-}
+    @keyframes wavesSlide {
+      from { transform: translateX(-18px); }
+      to   { transform: translateX(18px); }
+    }
 
-#lookAroundWrap.visible{
-  opacity:1;
-  pointer-events:auto;
-}
+    /* logo centered inside the same picture window */
+    .logo-wrap {
+      position: absolute;
+      left: var(--win-x);
+      top: var(--win-y);
+      width: var(--win-w);
+      height: var(--win-h);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 800ms ease;
+    }
 
-#lookAroundBtn{
-  background:none;
-  border:none;
-  padding:0;
-  cursor:pointer;
-  position:relative;
-}
+    #logoImg {
+      max-width: 92%;
+      max-height: 92%;
+      image-rendering: pixelated;
+    }
 
-#lookAroundBtn img{
-  display:block;
-  image-rendering:pixelated;
-  height:120px;
-}
+    /* typewriter text sits in your lower textbox area visually, but we'll position it on stage */
+    .story-text {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 600ms ease;
+    }
 
-#lookAroundBtn span{
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-family:"Press Start 2P";
-  font-size:16px;
-  color:#3a240f;
-  pointer-events:none;
-}
+    /* adjust these if you want later */
+    .story-text .inner {
+      position: absolute;
+      left: 820px;
+      top: 785px;
+      width: 920px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      text-align: center;
+      font-family: monospace;
+      font-size: 24px;
+      color: #2b1b10;
+      line-height: 1.4;
+      letter-spacing: 1px;
+      white-space: pre-wrap;
+    }
 
-.visible{
-  opacity:1 !important;
-}
-</style>
+    /* choice button (Look Around) */
+    .choice-area {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      padding-bottom: 120px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 600ms ease;
+    }
+
+    .choice-area .btn {
+      pointer-events: auto;
+      width: 520px;
+      height: 170px;
+    }
+
+  </style>
 </head>
 
 <body>
+  <div class="stage-wrap">
+    <div class="stage">
 
-<div id="stage">
+      <!-- Start screen -->
+      <div id="startScreen" class="start-screen">
+        <div id="startBtn" class="btn" role="button" aria-label="Begin">
+          <img src="stsbutton.png" alt="button" />
+          <div class="label">Begin</div>
+        </div>
+      </div>
 
-  <div id="startScreen">
-    <button id="beginBtn" type="button">
-      <img src="stsbutton.png" alt="">
-      <span>Begin</span>
-    </button>
+      <!-- Reveal group -->
+      <div id="revealGroup" class="reveal layer">
+
+        <!-- picture window -->
+        <div class="picture-window">
+          <img id="sceneImg" src="island_base.png" alt="scene" />
+          <img class="waves" id="wavesImg" src="water_overlay.png" alt="waves overlay" />
+        </div>
+
+        <!-- frame on top -->
+        <img id="frameImg" class="layer" src="stsframe2.png" alt="frame" />
+
+        <!-- logo centered inside the picture window -->
+        <div id="logoWrap" class="logo-wrap">
+          <img id="logoImg" src="stslogo2.png" alt="Sea to Summit logo" />
+        </div>
+
+        <!-- story text -->
+        <div id="storyText" class="story-text">
+          <div id="storyInner" class="inner"></div>
+        </div>
+
+        <!-- Look Around -->
+        <div id="choiceArea" class="choice-area">
+          <div id="lookBtn" class="btn" role="button" aria-label="Look Around">
+            <img src="stsbutton.png" alt="button" />
+            <div class="label">Look Around</div>
+          </div>
+        </div>
+
+      </div>
+
+      <audio id="bgm" src="starttheme.m4a" preload="auto"></audio>
+
+    </div>
   </div>
 
-  <div id="frameWrapper">
+  <script>
+    const startScreen = document.getElementById('startScreen');
+    const startBtn = document.getElementById('startBtn');
+    const revealGroup = document.getElementById('revealGroup');
+    const bgm = document.getElementById('bgm');
 
-    <div id="window">
-      <img id="sceneImage" src="island_base.png" alt="">
-      <img id="waterOverlay" src="water_overlay.png" alt="">
-    </div>
+    const logoWrap = document.getElementById('logoWrap');
 
-    <img id="frameImg" src="stsframe2.png" alt="">
-    <img id="logoImg" src="stslogo2.png" alt="">
+    const storyText = document.getElementById('storyText');
+    const storyInner = document.getElementById('storyInner');
 
-    <div id="dialogueWrap">
-      <div id="dialogue"></div>
-    </div>
+    const choiceArea = document.getElementById('choiceArea');
+    const lookBtn = document.getElementById('lookBtn');
 
-    <div id="lookAroundWrap">
-      <button id="lookAroundBtn" type="button">
-        <img src="stsbutton.png" alt="">
-        <span>Look Around</span>
-      </button>
-    </div>
+    const fullLine = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
+    let typing = false;
+    let finished = false;
+    let typeTimer = null;
 
-  </div>
-
-  <audio id="music" src="starttheme.m4a" preload="auto" loop></audio>
-
-</div>
-
-<script>
-const BASE_W = 1920;
-const BASE_H = 1080;
-
-function scaleStage(){
-  const stage = document.getElementById("stage");
-  const s = Math.min(window.innerWidth / BASE_W, window.innerHeight / BASE_H);
-  stage.style.transform = "translate(-50%, -50%) scale(" + s + ")";
-}
-window.addEventListener("resize", scaleStage);
-
-document.addEventListener("DOMContentLoaded", () => {
-  scaleStage();
-
-  const beginBtn = document.getElementById("beginBtn");
-  const startScreen = document.getElementById("startScreen");
-
-  const frameWrapper = document.getElementById("frameWrapper");
-  const logoImg = document.getElementById("logoImg");
-
-  const dialogueWrap = document.getElementById("dialogueWrap");
-  const dialogue = document.getElementById("dialogue");
-
-  const lookAroundWrap = document.getElementById("lookAroundWrap");
-  const lookAroundBtn = document.getElementById("lookAroundBtn");
-
-  const music = document.getElementById("music");
-
-  const text = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
-
-  function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-
-  function fadeInMusic(){
-    music.volume = 0;
-    let v = 0;
-    const fade = setInterval(() => {
-      v += 0.02;
-      music.volume = Math.min(v, 1);
-      if(v >= 1) clearInterval(fade);
-    }, 60);
-  }
-
-  let typing = false;
-  let timer = null;
-
-  function typewriter(str, cps){
-    if(timer) clearTimeout(timer);
-    typing = true;
-    dialogue.textContent = "";
-    let i = 0;
-    const delay = Math.max(10, 1000 / cps);
-
-    function tick(){
-      if(!typing) return;
-      dialogue.textContent += str[i++];
-      if(i < str.length){
-        timer = setTimeout(tick, delay);
-      } else {
-        typing = false;
-        lookAroundWrap.classList.add("visible");
-      }
+    function fadeInAudio(audioEl, durationMs = 1500) {
+      audioEl.volume = 0;
+      const playPromise = audioEl.play();
+      if (playPromise) playPromise.catch(() => {});
+      const steps = 30;
+      let i = 0;
+      const step = 1 / steps;
+      const interval = durationMs / steps;
+      const t = setInterval(() => {
+        i++;
+        audioEl.volume = Math.min(1, i * step);
+        if (i >= steps) clearInterval(t);
+      }, interval);
     }
-    tick();
-  }
 
-  dialogue.addEventListener("click", () => {
-    if(typing){
+    function typeWriter(text, speed = 28) {
+      typing = true;
+      finished = false;
+      storyInner.textContent = "";
+      let i = 0;
+
+      typeTimer = setInterval(() => {
+        i++;
+        storyInner.textContent = text.slice(0, i);
+        if (i >= text.length) {
+          clearInterval(typeTimer);
+          typing = false;
+          finished = true;
+          // show choice
+          setTimeout(() => {
+            choiceArea.classList.add('visible');
+          }, 250);
+        }
+      }, speed);
+    }
+
+    function finishTypingNow() {
+      if (!typing) return;
+      clearInterval(typeTimer);
       typing = false;
-      if(timer) clearTimeout(timer);
-      dialogue.textContent = text;
-      lookAroundWrap.classList.add("visible");
+      finished = true;
+      storyInner.textContent = fullLine;
+      choiceArea.classList.add('visible');
     }
-  });
 
-  beginBtn.addEventListener("click", async () => {
-    startScreen.style.display = "none";
+    // click anywhere to finish text once it starts
+    document.addEventListener('click', (e) => {
+      if (startScreen.style.pointerEvents === 'none') {
+        if (typing) finishTypingNow();
+      }
+    });
 
-    try{ await music.play(); }catch(e){}
-    fadeInMusic();
+    startBtn.addEventListener('click', () => {
+      // fade out start screen
+      startScreen.style.pointerEvents = 'none';
+      startScreen.style.opacity = '0';
 
-    frameWrapper.classList.add("visible");
+      // fade in audio + visuals
+      fadeInAudio(bgm, 1800);
 
-    await sleep(700);
-    logoImg.classList.add("visible");
+      setTimeout(() => {
+        revealGroup.classList.add('visible');
+      }, 200);
 
-    await sleep(3000);
-    logoImg.classList.remove("visible");
+      // logo fade in after frame appears
+      setTimeout(() => {
+        logoWrap.classList.add('visible');
+      }, 900);
 
-    await sleep(600);
-    dialogueWrap.classList.add("visible");
-    typewriter(text, 38);
-  });
+      // logo fade out after 3 seconds
+      setTimeout(() => {
+        logoWrap.classList.remove('visible');
+      }, 3900);
 
-  lookAroundBtn.addEventListener("click", () => {
-    window.location.href = "start2.html";
-  });
-});
-</script>
+      // show story text and start typewriter
+      setTimeout(() => {
+        storyText.classList.add('visible');
+        typeWriter(fullLine, 26);
+      }, 4300);
+    });
 
+    lookBtn.addEventListener('click', () => {
+      window.location.href = "start2.html";
+    });
+  </script>
 </body>
 </html>
