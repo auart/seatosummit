@@ -102,7 +102,6 @@ html, body {
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* Title stays exactly where Illustrator put it */
 .title-layer {
   position: absolute;
   left: 0;
@@ -117,10 +116,10 @@ html, body {
 }
 .title-layer.visible { opacity: 1; }
 
-/* Story text: slightly more squeezed + higher */
+/* Story text: nudged right 10px, same vertical placement */
 .story {
   position: absolute;
-  left: 50%;
+  left: calc(50% + 10px);
   bottom: 200px;
   transform: translateX(-50%);
   width: 960px;
@@ -138,12 +137,12 @@ html, body {
 }
 .story.visible { opacity: 1; }
 
-/* Look Around button: 10% smaller */
+/* Look Around button: additional 7% smaller (total ~84%) */
 .choice {
   position: absolute;
   left: 50%;
   bottom: 5px;
-  transform: translateX(-50%) scale(0.9);
+  transform: translateX(-50%) scale(0.84);
   transform-origin: center center;
   opacity: 0;
   transition: opacity 700ms ease;
@@ -180,7 +179,7 @@ html, body {
       <div class="stage">
 
         <img class="layer scene" src="starthome.png">
-        <img class="layer frame" src="stsframe2.png">
+        <img class="layer frame" src="stsframe3.png">
         <img class="title-layer" id="title" src="stslogo2.png">
 
         <div class="story" id="story"></div>
