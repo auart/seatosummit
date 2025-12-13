@@ -107,25 +107,50 @@ html, body {
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
+/* waking up blur */
+.scene-haze {
+  filter: blur(0px) saturate(1) brightness(1);
+  opacity: 1;
+  transition: filter 900ms ease, opacity 900ms ease;
+}
+.scene-haze.groggy {
+  filter: blur(5px) saturate(0.92) brightness(1.02);
+  opacity: 0.92;
+}
+.scene-haze.clear {
+  filter: blur(0px) saturate(1) brightness(1);
+  opacity: 1;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1200ms ease;
+  background: radial-gradient(circle at center,
+    rgba(0,0,0,0) 45%,
+    rgba(0,0,0,0.25) 80%,
+    rgba(0,0,0,0.55) 100%);
+}
+.vignette.groggy { opacity: 1; }
+.vignette.clear { opacity: 0; }
+
 .title-layer {
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 1920px;
-  height: 1080px;
+  inset: 0;
   image-rendering: pixelated;
   opacity: 0;
   transition: opacity 900ms ease;
   z-index: 20;
-  pointer-events: none;
 }
 .title-layer.visible { opacity: 1; }
 
-/* Story textbox: nudged UP a bit for vertical centering */
 .story {
   position: absolute;
   left: 50%;
-  bottom: 208px;              /* was 200px, moved up 8px */
+  bottom: 212px;
   transform: translateX(-50%);
   width: 900px;
   font-family: "Silkscreen";
@@ -148,15 +173,12 @@ html, body {
   left: 50%;
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
-  transform-origin: center center;
   opacity: 0;
   transition: opacity 700ms ease;
   z-index: 30;
-  text-decoration: none;
 }
 .choice.visible { opacity: 1; }
 
-/* Eyelids (slow tired) */
 .eyelids {
   position: absolute;
   inset: 0;
@@ -164,84 +186,77 @@ html, body {
   pointer-events: none;
   overflow: hidden;
   --pct: 0%;
-  --dur: 800ms;
+  --dur: 650ms;
 }
 
 .eyelid {
   position: absolute;
-  left: 0;
   width: 100%;
   height: 50%;
   background: black;
-  transition-property: transform;
-  transition-duration: var(--dur);
-  transition-timing-function: cubic-bezier(0.33, 0, 0.2, 1);
+  transition: transform var(--dur) cubic-bezier(0.33,0,0.2,1);
 }
 
 .eyelid.top {
   top: 0;
   transform: translateY(calc(-1 * var(--pct)));
 }
-
 .eyelid.bottom {
   bottom: 0;
   transform: translateY(var(--pct));
 }
 
 .eyelids.closed { --pct: 0%; }
-.eyelids.open1  { --pct: 30%; }
-.eyelids.open2  { --pct: 55%; }
-.eyelids.open3  { --pct: 100%; }
+.eyelids.open1 { --pct: 45%; }
+.eyelids.open2 { --pct: 100%; }
 </style>
 </head>
 
 <body>
 <div class="app">
 
-  <div class="start-screen" id="startScreen">
-    <div class="button" id="startButton">
-      <img src="stsbutton.png" alt="">
-      <span>Begin</span>
-    </div>
+<div class="start-screen" id="startScreen">
+  <div class="button" id="startButton">
+    <img src="stsbutton.png">
+    <span>Begin</span>
   </div>
+</div>
 
-  <div class="game-screen" id="gameScreen">
-    <div class="stage-wrapper" id="stageWrapper">
-      <div class="stage">
+<div class="game-screen" id="gameScreen">
+  <div class="stage-wrapper" id="stageWrapper">
+    <div class="stage">
 
-        <img class="layer scene" src="starti.png" alt="">
-        <img class="layer frame" src="stsframe3.png" alt="">
-        <img class="title-layer" id="title" src="stslogo2.png" alt="">
+      <img class="layer scene scene-haze groggy" id="sceneImg" src="starti.png">
+      <div class="vignette groggy" id="vignette"></div>
 
-        <div class="story" id="story" aria-label="Story text"></div>
+      <img class="layer frame" src="stsframe3.png">
+      <img class="title-layer" id="title" src="stslogo2.png">
 
-        <a href="start2.html" class="choice" id="choice">
-          <div class="button">
-            <img src="stsbutton.png" alt="">
-            <span style="font-size:20px;">Look Around</span>
-          </div>
-        </a>
+      <div class="story" id="story"></div>
 
-        <div class="eyelids closed" id="eyelids">
-          <div class="eyelid top"></div>
-          <div class="eyelid bottom"></div>
+      <a href="start2.html" class="choice" id="choice">
+        <div class="button">
+          <img src="stsbutton.png">
+          <span style="font-size:20px;">Look Around</span>
         </div>
+      </a>
 
+      <div class="eyelids closed" id="eyelids">
+        <div class="eyelid top"></div>
+        <div class="eyelid bottom"></div>
       </div>
+
     </div>
   </div>
+</div>
 
-  <audio id="music" src="starttheme.m4a" preload="auto"></audio>
+<audio id="music" src="starttheme.m4a" preload="auto"></audio>
 
 </div>
 
 <script>
-/* HARD scroll lock */
 window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
 window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
-window.addEventListener("keydown", e => {
-  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
-});
 
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
@@ -252,8 +267,9 @@ const choice = document.getElementById("choice");
 const eyelids = document.getElementById("eyelids");
 const music = document.getElementById("music");
 const stageWrapper = document.getElementById("stageWrapper");
+const sceneImg = document.getElementById("sceneImg");
+const vignette = document.getElementById("vignette");
 
-/* SENTENCE-BY-SENTENCE STORY (click anywhere to advance) */
 const storyLines = [
   "You wake up on a beach.",
   "Warm sand, slow waves.",
@@ -264,7 +280,7 @@ let lineIndex = 0;
 let charIndex = 0;
 let typing = null;
 let isTyping = false;
-let storyActive = false;  // only allow global clicks once story begins
+let storyActive = false;
 
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
@@ -286,25 +302,34 @@ function fadeInMusic() {
 
 function setEyelids(state, dur) {
   eyelids.style.setProperty("--dur", dur + "ms");
-  eyelids.classList.remove("closed","open1","open2","open3");
+  eyelids.classList.remove("closed","open1","open2");
   eyelids.classList.add(state);
 }
 
-function startTypingCurrentLine() {
+function setGroggy(on) {
+  if (on) {
+    sceneImg.classList.add("groggy");
+    vignette.classList.add("groggy");
+  } else {
+    sceneImg.classList.remove("groggy");
+    sceneImg.classList.add("clear");
+    vignette.classList.remove("groggy");
+    vignette.classList.add("clear");
+  }
+}
+
+function startTypingLine() {
   clearInterval(typing);
   isTyping = true;
   charIndex = 0;
   story.textContent = "";
-
   const current = storyLines[lineIndex];
-
   typing = setInterval(() => {
     charIndex++;
     story.textContent = current.slice(0, charIndex);
     if (charIndex >= current.length) {
       clearInterval(typing);
       isTyping = false;
-
       if (lineIndex === storyLines.length - 1) {
         choice.classList.add("visible");
       }
@@ -312,43 +337,22 @@ function startTypingCurrentLine() {
   }, 30);
 }
 
-function finishLineInstant() {
-  clearInterval(typing);
-  isTyping = false;
-  story.textContent = storyLines[lineIndex];
-
-  if (lineIndex === storyLines.length - 1) {
-    choice.classList.add("visible");
-  }
-}
-
 function advanceStory() {
   if (!storyActive) return;
-
   if (isTyping) {
-    finishLineInstant();
+    story.textContent = storyLines[lineIndex];
+    isTyping = false;
     return;
   }
-
-  if (lineIndex >= storyLines.length - 1) {
-    return;
+  if (lineIndex < storyLines.length - 1) {
+    lineIndex++;
+    startTypingLine();
   }
-
-  lineIndex++;
-  startTypingCurrentLine();
 }
 
-/* Click ANYWHERE to advance, but don't hijack the button link */
-document.addEventListener("click", (e) => {
-  if (e.target.closest("#startButton")) return; // let Begin work
-  if (e.target.closest("#choice")) return;      // let Look Around link work
-  if (!storyActive) return;
-  advanceStory();
-});
-
-/* (still let clicking the story itself work too, same behavior) */
-story.addEventListener("click", (e) => {
-  e.stopPropagation();
+document.addEventListener("click", e => {
+  if (e.target.closest("#startButton")) return;
+  if (e.target.closest("#choice")) return;
   advanceStory();
 });
 
@@ -356,43 +360,29 @@ startButton.addEventListener("click", () => {
   startScreen.classList.add("hidden");
   gameScreen.classList.add("visible");
   fadeInMusic();
+  setGroggy(true);
 
-  // Reset story state
-  lineIndex = 0;
-  charIndex = 0;
-  isTyping = false;
-  storyActive = false;
-  story.textContent = "";
-  story.classList.remove("visible");
-  choice.classList.remove("visible");
+  let t = 250;
+  setTimeout(() => setEyelids("open1", 750), t); t += 950;
+  setTimeout(() => setEyelids("closed", 520), t); t += 750;
+  setTimeout(() => setEyelids("open1", 700), t); t += 900;
+  setTimeout(() => setEyelids("closed", 500), t); t += 700;
+  setTimeout(() => setEyelids("open2", 1200), t);
 
-  // slow tired blink sequence
-  let t = 400;
+  setTimeout(() => setGroggy(false), t + 250);
 
-  setTimeout(() => setEyelids("open1", 1200), t);  t += 1600;
-  setTimeout(() => setEyelids("closed", 900), t);  t += 1400;
-  setTimeout(() => setEyelids("open2", 1400), t);  t += 1800;
-  setTimeout(() => setEyelids("closed", 1000), t); t += 1600;
-  setTimeout(() => setEyelids("open3", 2200), t);
+  const fullyOpenAt = t + 1200;
+  const titleIn = fullyOpenAt + 4000;
+  const titleOut = titleIn + 4000;
 
-  const fullyOpenAt = t + 2200;
-
-  // Timing: show picture for 4s, then title for 4s, but title appears 1.5s sooner
-  // So we reduce the pictureHold by 1500ms.
-  const pictureHold = 2500;  // was 4000
-  const titleHold = 4000;
-
-  const titleInAt = fullyOpenAt + pictureHold;
-  const titleOutAt = titleInAt + titleHold;
-
-  setTimeout(() => title.classList.add("visible"), titleInAt);
-  setTimeout(() => title.classList.remove("visible"), titleOutAt);
+  setTimeout(() => title.classList.add("visible"), titleIn);
+  setTimeout(() => title.classList.remove("visible"), titleOut);
 
   setTimeout(() => {
     story.classList.add("visible");
     storyActive = true;
-    startTypingCurrentLine();
-  }, titleOutAt + 700);
+    startTypingLine();
+  }, titleOut + 700);
 });
 </script>
 </body>
