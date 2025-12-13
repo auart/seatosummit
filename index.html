@@ -24,7 +24,6 @@ html, body {
   background: black;
 }
 
-/* START SCREEN */
 .start-screen {
   position: absolute;
   inset: 0;
@@ -57,11 +56,10 @@ html, body {
   place-items: center;
   font-family: "Press Start 2P";
   font-size: 22px;
-  color: white;
+  color: black;
   pointer-events: none;
 }
 
-/* GAME SCREEN */
 .game-screen {
   position: absolute;
   inset: 0;
@@ -77,7 +75,6 @@ html, body {
   pointer-events: auto;
 }
 
-/* 1920x1080 STAGE */
 .stage-wrapper {
   position: absolute;
   left: 50%;
@@ -106,21 +103,10 @@ html, body {
 
 .scene { z-index: 1; }
 
-.water {
-  z-index: 2;
-  opacity: 0.55;
-  mix-blend-mode: screen;
-  animation: waterSlide 6s ease-in-out infinite alternate;
-}
+/* frame always on top */
+.frame { z-index: 10; }
 
-.frame { z-index: 3; }
-
-@keyframes waterSlide {
-  from { transform: translateX(-4%); }
-  to { transform: translateX(4%); }
-}
-
-/* TITLE */
+/* title */
 .title {
   position: absolute;
   left: 50%;
@@ -130,47 +116,45 @@ html, body {
   image-rendering: pixelated;
   opacity: 0;
   transition: opacity 700ms ease;
-  z-index: 10;
+  z-index: 20;
 }
-
 .title.visible { opacity: 1; }
 
-/* STORY TEXT */
+/* story text placed inside the bottom plaque area */
 .story {
   position: absolute;
   left: 50%;
-  bottom: 220px;
+  bottom: 120px;
   transform: translateX(-50%);
   width: 1400px;
   font-family: "Silkscreen";
   font-size: 28px;
   line-height: 1.35;
-  color: white;
-  text-shadow: 0 2px 0 rgba(0,0,0,0.7);
+  color: black;
+  text-shadow: none;
   opacity: 0;
   transition: opacity 500ms ease;
   cursor: pointer;
-  z-index: 20;
+  z-index: 15;
+  padding-left: 120px;
+  padding-right: 120px;
+  box-sizing: border-box;
 }
-
 .story.visible { opacity: 1; }
 
-/* CHOICE BUTTON */
+/* choice button under the frame, close to bottom, behind the frame if overlapping */
 .choice {
   position: absolute;
   left: 50%;
-  bottom: 360px;
+  bottom: 210px;
   transform: translateX(-50%);
   opacity: 0;
   transition: opacity 700ms ease;
-  z-index: 30;
+  z-index: 5;
+  text-decoration: none;
 }
+.choice.visible { opacity: 1; }
 
-.choice.visible {
-  opacity: 1;
-}
-
-/* FADE MASK */
 .fade-mask {
   position: absolute;
   inset: 0;
@@ -178,11 +162,9 @@ html, body {
   opacity: 1;
   transition: opacity 1200ms ease;
   z-index: 50;
+  pointer-events: none;
 }
-
-.fade-mask.clear {
-  opacity: 0;
-}
+.fade-mask.clear { opacity: 0; }
 </style>
 </head>
 
@@ -191,7 +173,7 @@ html, body {
 
   <div class="start-screen" id="startScreen">
     <div class="button" id="startButton">
-      <img src="stsbutton.png">
+      <img src="stsbutton.png" alt="Begin">
       <span>Begin</span>
     </div>
   </div>
@@ -199,17 +181,20 @@ html, body {
   <div class="game-screen" id="gameScreen">
     <div class="stage-wrapper" id="stageWrapper">
       <div class="stage">
-        <img class="layer scene" src="starthome.png">
-        <img class="layer water" src="water_overlay.png">
-        <img class="layer frame" src="stsframe2.png">
-        <img class="title" id="title" src="stslogo2.png">
+        <img class="layer scene" src="starthome.png" alt="Start scene">
+        <img class="layer frame" src="stsframe2.png" alt="Frame">
+
+        <img class="title" id="title" src="stslogo2.png" alt="Sea to Summit">
+
         <div class="story" id="story"></div>
+
         <a href="start2.html" class="choice" id="choice">
           <div class="button">
-            <img src="stsbutton.png">
-            <span style="font-size:18px;">Look Around</span>
+            <img src="stsbutton.png" alt="Look Around">
+            <span style="font-size:18px; color:black;">Look Around</span>
           </div>
         </a>
+
         <div class="fade-mask" id="fadeMask"></div>
       </div>
     </div>
@@ -238,7 +223,6 @@ function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
   stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
 }
-
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
