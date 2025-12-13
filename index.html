@@ -5,17 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sea to Summit</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+
   <style>
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden; /* no scroll */
+      overflow: hidden;
       background: #000;
     }
 
-    /* main stage, 1920x1080, scaled to fit screen */
     .stage-wrap {
       width: 100vw;
       height: 100vh;
@@ -30,9 +33,10 @@
       width: 1920px;
       height: 1080px;
       transform-origin: center center;
+      overflow: hidden;
+      background: #000;
     }
 
-    /* scale stage to fit window */
     @media (max-aspect-ratio: 16/9) {
       .stage { transform: scale(calc(100vw / 1920)); }
     }
@@ -40,18 +44,26 @@
       .stage { transform: scale(calc(100vh / 1080)); }
     }
 
-    /* layers */
     .layer {
       position: absolute;
       left: 0;
       top: 0;
       width: 1920px;
       height: 1080px;
+      image-rendering: pixelated;
       pointer-events: none;
     }
 
-    /* start button */
-    .start-screen {
+    .fade {
+      transition: opacity 800ms ease;
+    }
+
+    .hidden {
+      opacity: 0;
+    }
+
+    /* Start screen overlay */
+    #startScreen {
       position: absolute;
       left: 0;
       top: 0;
@@ -63,14 +75,16 @@
       pointer-events: auto;
       opacity: 1;
       transition: opacity 600ms ease;
+      z-index: 50;
     }
 
     .btn {
       position: relative;
-      width: 420px;
-      height: 150px;
+      width: 520px;
+      height: 170px;
       cursor: pointer;
       user-select: none;
+      pointer-events: auto;
     }
 
     .btn img {
@@ -86,96 +100,19 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: monospace;
-      font-size: 44px;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: 34px;
       color: #2b1b10;
       letter-spacing: 1px;
     }
 
-    /* reveal group */
-    .reveal {
-      opacity: 0;
-      transition: opacity 900ms ease;
+    /* Logo fades in and out */
+    #logo {
+      z-index: 30;
     }
 
-    .visible {
-      opacity: 1 !important;
-    }
-
-    /* frame */
-    #frameImg {
-      image-rendering: pixelated;
-    }
-
-    /* window numbers from Illustrator */
-    :root {
-      --win-x: 963.8801px;
-      --win-y: 440.1124px;
-      --win-w: 919.8045px;
-      --win-h: 607.4107px;
-    }
-
-    /* picture viewport inside the frame */
-    .picture-window {
-      position: absolute;
-      left: var(--win-x);
-      top: var(--win-y);
-      width: var(--win-w);
-      height: var(--win-h);
-      overflow: hidden;
-      pointer-events: none;
-    }
-
-    .picture-window img {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover; /* fill the window */
-      image-rendering: pixelated;
-    }
-
-    /* waves overlay, slightly bigger so movement doesn't reveal edges */
-    .waves {
-      position: absolute;
-      left: -40px;
-      top: 0;
-      width: calc(100% + 80px);
-      height: 100%;
-      opacity: 0.9;
-      mix-blend-mode: screen;
-      animation: wavesSlide 2.8s ease-in-out infinite alternate;
-    }
-
-    @keyframes wavesSlide {
-      from { transform: translateX(-18px); }
-      to   { transform: translateX(18px); }
-    }
-
-    /* logo centered inside the same picture window */
-    .logo-wrap {
-      position: absolute;
-      left: var(--win-x);
-      top: var(--win-y);
-      width: var(--win-w);
-      height: var(--win-h);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 800ms ease;
-    }
-
-    #logoImg {
-      max-width: 92%;
-      max-height: 92%;
-      image-rendering: pixelated;
-    }
-
-    /* typewriter text sits in your lower textbox area visually, but we'll position it on stage */
-    .story-text {
+    /* Typewriter text (we position it on top of where the textbox is in starthome.png) */
+    #storyText {
       position: absolute;
       left: 0;
       top: 0;
@@ -184,30 +121,33 @@
       pointer-events: none;
       opacity: 0;
       transition: opacity 600ms ease;
+      z-index: 40;
     }
 
-    /* adjust these if you want later */
-    .story-text .inner {
+    /* You can adjust these 4 numbers later if needed */
+    #storyInner {
       position: absolute;
-      left: 820px;
-      top: 785px;
-      width: 920px;
-      height: 120px;
+      left: 965.8681px;
+      top: 862.4154px;
+      width: 813.4602px;
+      height: 83.053px;
+
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 10px 20px;
+
+      padding: 10px 18px;
       text-align: center;
-      font-family: monospace;
-      font-size: 24px;
+      font-family: "Silkscreen", system-ui, sans-serif;
+      font-size: 26px;
       color: #2b1b10;
-      line-height: 1.4;
+      line-height: 1.35;
       letter-spacing: 1px;
       white-space: pre-wrap;
     }
 
-    /* choice button (Look Around) */
-    .choice-area {
+    /* Choice button appears under frame */
+    #choiceArea {
       position: absolute;
       left: 0;
       top: 0;
@@ -216,18 +156,16 @@
       display: flex;
       justify-content: center;
       align-items: flex-end;
-      padding-bottom: 120px;
-      pointer-events: none;
+      padding-bottom: 60px;
       opacity: 0;
       transition: opacity 600ms ease;
+      pointer-events: none;
+      z-index: 45;
     }
 
-    .choice-area .btn {
+    #choiceArea .btn {
       pointer-events: auto;
-      width: 520px;
-      height: 170px;
     }
-
   </style>
 </head>
 
@@ -235,44 +173,34 @@
   <div class="stage-wrap">
     <div class="stage">
 
-      <!-- Start screen -->
-      <div id="startScreen" class="start-screen">
+      <!-- Background scene already includes the frame and aligned art -->
+      <img id="homeBg" class="layer fade hidden" src="starthome.png" alt="start home" />
+
+      <!-- Optional waves overlay if you still want it on top -->
+      <img id="waves" class="layer fade hidden" src="water_overlay.png" alt="waves overlay" style="mix-blend-mode: screen; opacity: 0.9; z-index: 20;" />
+
+      <!-- Logo on top -->
+      <img id="logo" class="layer hidden fade" src="stslogo2.png" alt="logo" />
+
+      <!-- Typewriter text -->
+      <div id="storyText">
+        <div id="storyInner"></div>
+      </div>
+
+      <!-- Choice button -->
+      <div id="choiceArea">
+        <div id="lookBtn" class="btn" role="button" aria-label="Look Around">
+          <img src="stsbutton.png" alt="button" />
+          <div class="label">Look Around</div>
+        </div>
+      </div>
+
+      <!-- Start overlay -->
+      <div id="startScreen">
         <div id="startBtn" class="btn" role="button" aria-label="Begin">
           <img src="stsbutton.png" alt="button" />
           <div class="label">Begin</div>
         </div>
-      </div>
-
-      <!-- Reveal group -->
-      <div id="revealGroup" class="reveal layer">
-
-        <!-- picture window -->
-        <div class="picture-window">
-          <img id="sceneImg" src="island_base.png" alt="scene" />
-          <img class="waves" id="wavesImg" src="water_overlay.png" alt="waves overlay" />
-        </div>
-
-        <!-- frame on top -->
-        <img id="frameImg" class="layer" src="stsframe2.png" alt="frame" />
-
-        <!-- logo centered inside the picture window -->
-        <div id="logoWrap" class="logo-wrap">
-          <img id="logoImg" src="stslogo2.png" alt="Sea to Summit logo" />
-        </div>
-
-        <!-- story text -->
-        <div id="storyText" class="story-text">
-          <div id="storyInner" class="inner"></div>
-        </div>
-
-        <!-- Look Around -->
-        <div id="choiceArea" class="choice-area">
-          <div id="lookBtn" class="btn" role="button" aria-label="Look Around">
-            <img src="stsbutton.png" alt="button" />
-            <div class="label">Look Around</div>
-          </div>
-        </div>
-
       </div>
 
       <audio id="bgm" src="starttheme.m4a" preload="auto"></audio>
@@ -281,42 +209,42 @@
   </div>
 
   <script>
-    const startScreen = document.getElementById('startScreen');
-    const startBtn = document.getElementById('startBtn');
-    const revealGroup = document.getElementById('revealGroup');
-    const bgm = document.getElementById('bgm');
+    const startScreen = document.getElementById("startScreen");
+    const startBtn = document.getElementById("startBtn");
+    const bgm = document.getElementById("bgm");
 
-    const logoWrap = document.getElementById('logoWrap');
+    const homeBg = document.getElementById("homeBg");
+    const waves = document.getElementById("waves");
+    const logo = document.getElementById("logo");
 
-    const storyText = document.getElementById('storyText');
-    const storyInner = document.getElementById('storyInner');
+    const storyText = document.getElementById("storyText");
+    const storyInner = document.getElementById("storyInner");
 
-    const choiceArea = document.getElementById('choiceArea');
-    const lookBtn = document.getElementById('lookBtn');
+    const choiceArea = document.getElementById("choiceArea");
+    const lookBtn = document.getElementById("lookBtn");
 
     const fullLine = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
     let typing = false;
-    let finished = false;
     let typeTimer = null;
 
-    function fadeInAudio(audioEl, durationMs = 1500) {
+    function fadeInAudio(audioEl, durationMs = 1600) {
       audioEl.volume = 0;
-      const playPromise = audioEl.play();
-      if (playPromise) playPromise.catch(() => {});
-      const steps = 30;
+      const p = audioEl.play();
+      if (p) p.catch(() => {});
+
+      const steps = 28;
       let i = 0;
-      const step = 1 / steps;
       const interval = durationMs / steps;
+
       const t = setInterval(() => {
         i++;
-        audioEl.volume = Math.min(1, i * step);
+        audioEl.volume = Math.min(1, i / steps);
         if (i >= steps) clearInterval(t);
       }, interval);
     }
 
-    function typeWriter(text, speed = 28) {
+    function typeWriter(text, speed = 26) {
       typing = true;
-      finished = false;
       storyInner.textContent = "";
       let i = 0;
 
@@ -326,10 +254,9 @@
         if (i >= text.length) {
           clearInterval(typeTimer);
           typing = false;
-          finished = true;
-          // show choice
           setTimeout(() => {
-            choiceArea.classList.add('visible');
+            choiceArea.style.pointerEvents = "auto";
+            choiceArea.style.opacity = "1";
           }, 250);
         }
       }, speed);
@@ -339,48 +266,64 @@
       if (!typing) return;
       clearInterval(typeTimer);
       typing = false;
-      finished = true;
       storyInner.textContent = fullLine;
-      choiceArea.classList.add('visible');
+      choiceArea.style.pointerEvents = "auto";
+      choiceArea.style.opacity = "1";
     }
 
-    // click anywhere to finish text once it starts
-    document.addEventListener('click', (e) => {
-      if (startScreen.style.pointerEvents === 'none') {
-        if (typing) finishTypingNow();
+    document.addEventListener("click", () => {
+      if (startScreen.style.pointerEvents === "none" && typing) {
+        finishTypingNow();
       }
     });
 
-    startBtn.addEventListener('click', () => {
-      // fade out start screen
-      startScreen.style.pointerEvents = 'none';
-      startScreen.style.opacity = '0';
+    // Simple wave motion
+    function startWaves() {
+      let dir = 1;
+      let x = 0;
+      setInterval(() => {
+        x += dir * 0.6;
+        if (x > 22) dir = -1;
+        if (x < -22) dir = 1;
+        waves.style.transform = `translateX(${x}px)`;
+      }, 16);
+    }
 
-      // fade in audio + visuals
-      fadeInAudio(bgm, 1800);
+    startBtn.addEventListener("click", () => {
+      startScreen.style.pointerEvents = "none";
+      startScreen.style.opacity = "0";
 
+      fadeInAudio(bgm);
+
+      // Fade in background and waves
       setTimeout(() => {
-        revealGroup.classList.add('visible');
-      }, 200);
+        homeBg.classList.remove("hidden");
+        homeBg.style.opacity = "1";
 
-      // logo fade in after frame appears
+        waves.classList.remove("hidden");
+        waves.style.opacity = "0.9";
+        startWaves();
+      }, 150);
+
+      // Logo fade in
       setTimeout(() => {
-        logoWrap.classList.add('visible');
+        logo.classList.remove("hidden");
+        logo.style.opacity = "1";
       }, 900);
 
-      // logo fade out after 3 seconds
+      // Logo fade out after 3s on screen
       setTimeout(() => {
-        logoWrap.classList.remove('visible');
+        logo.style.opacity = "0";
       }, 3900);
 
-      // show story text and start typewriter
+      // Story text
       setTimeout(() => {
-        storyText.classList.add('visible');
-        typeWriter(fullLine, 26);
+        storyText.style.opacity = "1";
+        typeWriter(fullLine);
       }, 4300);
     });
 
-    lookBtn.addEventListener('click', () => {
+    lookBtn.addEventListener("click", () => {
       window.location.href = "start2.html";
     });
   </script>
