@@ -159,19 +159,22 @@ html, body {
   inset: 0;
   background: black;
   opacity: 1;
-  transition: opacity 600ms ease;
+  transition: opacity 300ms ease;
   z-index: 50;
   pointer-events: none;
 }
 .fade-mask.clear { opacity: 0; }
 
-/* Eyelid opening effect */
+/* Eyelids with partial open, close, partial, close, full open */
 .eyelids {
   position: absolute;
   inset: 0;
   z-index: 70;
   pointer-events: none;
   overflow: hidden;
+  --pct: 0%;
+  --dur: 250ms;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .eyelid {
@@ -180,26 +183,26 @@ html, body {
   width: 100%;
   height: 50%;
   background: black;
-  transition: transform 1400ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition-property: transform;
+  transition-duration: var(--dur);
+  transition-timing-function: var(--ease);
 }
 
 .eyelid.top {
   top: 0;
-  transform: translateY(0);
+  transform: translateY(calc(-1 * var(--pct)));
 }
 
 .eyelid.bottom {
   bottom: 0;
-  transform: translateY(0);
+  transform: translateY(var(--pct));
 }
 
-.eyelids.open .eyelid.top {
-  transform: translateY(-100%);
-}
-
-.eyelids.open .eyelid.bottom {
-  transform: translateY(100%);
-}
+/* States */
+.eyelids.closed { --pct: 0%; }
+.eyelids.open1  { --pct: 38%; }
+.eyelids.open2  { --pct: 55%; }
+.eyelids.open3  { --pct: 100%; }
 </style>
 </head>
 
@@ -232,7 +235,7 @@ html, body {
 
         <div class="fade-mask" id="fadeMask"></div>
 
-        <div class="eyelids" id="eyelids">
+        <div class="eyelids closed" id="eyelids">
           <div class="eyelid top"></div>
           <div class="eyelid bottom"></div>
         </div>
@@ -246,7 +249,7 @@ html, body {
 </div>
 
 <script>
-/* HARD scroll lock (Safari + trackpads + keyboard) */
+/* HARD scroll lock (Safari, trackpads, keyboard) */
 window.addEventListener("wheel", e => e.preventDefault(), { passive: false });
 window.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
 window.addEventListener("keydown", e => {
@@ -308,24 +311,58 @@ story.addEventListener("click", () => {
   }
 });
 
+function setEyelids(state, dur) {
+  eyelids.style.setProperty("--dur", dur + "ms");
+  eyelids.classList.remove("closed","open1","open2","open3");
+  eyelids.classList.add(state);
+}
+
 startButton.addEventListener("click", () => {
   startScreen.classList.add("hidden");
   gameScreen.classList.add("visible");
-
   fadeInMusic();
 
-  setTimeout(() => {
-    fadeMask.classList.add("clear");
-    eyelids.classList.add("open");
-  }, 200);
+  setTimeout(() => fadeMask.classList.add("clear"), 120);
 
-  setTimeout(() => title.classList.add("visible"), 1500);
-  setTimeout(() => title.classList.remove("visible"), 5000);
+  /* Eyelids sequence
+     1) partial open
+     2) close
+     3) partial open more
+     4) close
+     5) full open
+  */
+  const t0 = 200;
+
+  setTimeout(() => setEyelids("open1", 260), t0);
+  setTimeout(() => setEyelids("closed", 180), t0 + 260);
+
+  setTimeout(() => setEyelids("open2", 260), t0 + 260 + 180);
+  setTimeout(() => setEyelids("closed", 180), t0 + 260 + 180 + 260);
+
+  setTimeout(() => setEyelids("open3", 650), t0 + 260 + 180 + 260 + 180);
+
+  /* Timing request
+     After fully open, show picture for 4 seconds
+     Then titles appear for 4 seconds
+     Then continue like normal
+  */
+  const fullOpenStart = t0 + 260 + 180 + 260 + 180;
+  const fullOpenDur = 650;
+  const fullOpenEnd = fullOpenStart + fullOpenDur;
+
+  const showPictureFor = 4000;
+  const showTitleFor = 4000;
+
+  const titleInAt = fullOpenEnd + showPictureFor;
+  const titleOutAt = titleInAt + showTitleFor;
+
+  setTimeout(() => title.classList.add("visible"), titleInAt);
+  setTimeout(() => title.classList.remove("visible"), titleOutAt);
 
   setTimeout(() => {
     story.classList.add("visible");
     typeText();
-  }, 5700);
+  }, titleOutAt + 700);
 });
 </script>
 </body>
