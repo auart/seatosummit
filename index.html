@@ -29,6 +29,7 @@ html, body {
   overflow: hidden;
 }
 
+/* START SCREEN */
 .start-screen {
   position: absolute;
   inset: 0;
@@ -64,6 +65,7 @@ html, body {
   pointer-events: none;
 }
 
+/* GAME SCREEN */
 .game-screen {
   position: absolute;
   inset: 0;
@@ -78,6 +80,7 @@ html, body {
   pointer-events: auto;
 }
 
+/* STAGE */
 .stage-wrapper {
   position: absolute;
   left: 50%;
@@ -107,6 +110,7 @@ html, body {
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
+/* TITLE */
 .title-layer {
   position: absolute;
   left: 0;
@@ -115,12 +119,13 @@ html, body {
   height: 1080px;
   image-rendering: pixelated;
   opacity: 0;
-  transition: opacity 700ms ease;
+  transition: opacity 900ms ease;
   z-index: 20;
   pointer-events: none;
 }
 .title-layer.visible { opacity: 1; }
 
+/* STORY */
 .story {
   position: absolute;
   left: 50%;
@@ -132,7 +137,7 @@ html, body {
   line-height: 1.2;
   color: black;
   opacity: 0;
-  transition: opacity 500ms ease;
+  transition: opacity 600ms ease;
   cursor: pointer;
   z-index: 15;
   padding-left: 50px;
@@ -141,6 +146,7 @@ html, body {
 }
 .story.visible { opacity: 1; }
 
+/* BUTTON */
 .choice {
   position: absolute;
   left: 50%;
@@ -154,18 +160,7 @@ html, body {
 }
 .choice.visible { opacity: 1; }
 
-.fade-mask {
-  position: absolute;
-  inset: 0;
-  background: black;
-  opacity: 1;
-  transition: opacity 300ms ease;
-  z-index: 50;
-  pointer-events: none;
-}
-.fade-mask.clear { opacity: 0; }
-
-/* Eyelids with partial open, close, partial, close, full open */
+/* EYELIDS (slow, tired) */
 .eyelids {
   position: absolute;
   inset: 0;
@@ -173,8 +168,7 @@ html, body {
   pointer-events: none;
   overflow: hidden;
   --pct: 0%;
-  --dur: 250ms;
-  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 800ms;
 }
 
 .eyelid {
@@ -185,7 +179,7 @@ html, body {
   background: black;
   transition-property: transform;
   transition-duration: var(--dur);
-  transition-timing-function: var(--ease);
+  transition-timing-function: cubic-bezier(0.33, 0, 0.2, 1);
 }
 
 .eyelid.top {
@@ -198,9 +192,8 @@ html, body {
   transform: translateY(var(--pct));
 }
 
-/* States */
 .eyelids.closed { --pct: 0%; }
-.eyelids.open1  { --pct: 38%; }
+.eyelids.open1  { --pct: 30%; }
 .eyelids.open2  { --pct: 55%; }
 .eyelids.open3  { --pct: 100%; }
 </style>
@@ -233,8 +226,6 @@ html, body {
           </div>
         </a>
 
-        <div class="fade-mask" id="fadeMask"></div>
-
         <div class="eyelids closed" id="eyelids">
           <div class="eyelid top"></div>
           <div class="eyelid bottom"></div>
@@ -249,9 +240,9 @@ html, body {
 </div>
 
 <script>
-/* HARD scroll lock (Safari, trackpads, keyboard) */
-window.addEventListener("wheel", e => e.preventDefault(), { passive: false });
-window.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+/* HARD scroll lock */
+window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
 window.addEventListener("keydown", e => {
   if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
 });
@@ -262,7 +253,6 @@ const startButton = document.getElementById("startButton");
 const title = document.getElementById("title");
 const story = document.getElementById("story");
 const choice = document.getElementById("choice");
-const fadeMask = document.getElementById("fadeMask");
 const eyelids = document.getElementById("eyelids");
 const music = document.getElementById("music");
 const stageWrapper = document.getElementById("stageWrapper");
@@ -283,33 +273,11 @@ function fadeInMusic() {
   music.play();
   let v = 0;
   const fade = setInterval(() => {
-    v += 0.03;
+    v += 0.025;
     music.volume = Math.min(v, 0.9);
     if (v >= 0.9) clearInterval(fade);
-  }, 80);
+  }, 120);
 }
-
-function typeText() {
-  clearInterval(typing);
-  index = 0;
-  story.textContent = "";
-  typing = setInterval(() => {
-    index++;
-    story.textContent = text.slice(0, index);
-    if (index >= text.length) {
-      clearInterval(typing);
-      choice.classList.add("visible");
-    }
-  }, 30);
-}
-
-story.addEventListener("click", () => {
-  if (index < text.length) {
-    clearInterval(typing);
-    story.textContent = text;
-    choice.classList.add("visible");
-  }
-});
 
 function setEyelids(state, dur) {
   eyelids.style.setProperty("--dur", dur + "ms");
@@ -322,47 +290,25 @@ startButton.addEventListener("click", () => {
   gameScreen.classList.add("visible");
   fadeInMusic();
 
-  setTimeout(() => fadeMask.classList.add("clear"), 120);
+  let t = 400;
 
-  /* Eyelids sequence
-     1) partial open
-     2) close
-     3) partial open more
-     4) close
-     5) full open
-  */
-  const t0 = 200;
+  setTimeout(() => setEyelids("open1", 1200), t);          t += 1600;
+  setTimeout(() => setEyelids("closed", 900), t);          t += 1400;
+  setTimeout(() => setEyelids("open2", 1400), t);          t += 1800;
+  setTimeout(() => setEyelids("closed", 1000), t);         t += 1600;
+  setTimeout(() => setEyelids("open3", 2200), t);
 
-  setTimeout(() => setEyelids("open1", 260), t0);
-  setTimeout(() => setEyelids("closed", 180), t0 + 260);
+  const fullyOpenAt = t + 2200;
+  const pictureHold = 4000;
+  const titleHold = 4000;
 
-  setTimeout(() => setEyelids("open2", 260), t0 + 260 + 180);
-  setTimeout(() => setEyelids("closed", 180), t0 + 260 + 180 + 260);
-
-  setTimeout(() => setEyelids("open3", 650), t0 + 260 + 180 + 260 + 180);
-
-  /* Timing request
-     After fully open, show picture for 4 seconds
-     Then titles appear for 4 seconds
-     Then continue like normal
-  */
-  const fullOpenStart = t0 + 260 + 180 + 260 + 180;
-  const fullOpenDur = 650;
-  const fullOpenEnd = fullOpenStart + fullOpenDur;
-
-  const showPictureFor = 4000;
-  const showTitleFor = 4000;
-
-  const titleInAt = fullOpenEnd + showPictureFor;
-  const titleOutAt = titleInAt + showTitleFor;
-
-  setTimeout(() => title.classList.add("visible"), titleInAt);
-  setTimeout(() => title.classList.remove("visible"), titleOutAt);
+  setTimeout(() => title.classList.add("visible"), fullyOpenAt + pictureHold);
+  setTimeout(() => title.classList.remove("visible"), fullyOpenAt + pictureHold + titleHold);
 
   setTimeout(() => {
     story.classList.add("visible");
     typeText();
-  }, titleOutAt + 700);
+  }, fullyOpenAt + pictureHold + titleHold + 800);
 });
 </script>
 </body>
