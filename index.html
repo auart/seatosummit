@@ -121,11 +121,11 @@ html, body {
 }
 .title-layer.visible { opacity: 1; }
 
-/* Story textbox */
+/* Story textbox: nudged UP a bit for vertical centering */
 .story {
   position: absolute;
   left: 50%;
-  bottom: 200px;
+  bottom: 208px;              /* was 200px, moved up 8px */
   transform: translateX(-50%);
   width: 900px;
   font-family: "Silkscreen";
@@ -253,7 +253,7 @@ const eyelids = document.getElementById("eyelids");
 const music = document.getElementById("music");
 const stageWrapper = document.getElementById("stageWrapper");
 
-/* SENTENCE-BY-SENTENCE STORY (click to advance) */
+/* SENTENCE-BY-SENTENCE STORY (click anywhere to advance) */
 const storyLines = [
   "You wake up on a beach.",
   "Warm sand, slow waves.",
@@ -264,6 +264,7 @@ let lineIndex = 0;
 let charIndex = 0;
 let typing = null;
 let isTyping = false;
+let storyActive = false;  // only allow global clicks once story begins
 
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
@@ -304,7 +305,6 @@ function startTypingCurrentLine() {
       clearInterval(typing);
       isTyping = false;
 
-      // if this is the last line, show the choice button
       if (lineIndex === storyLines.length - 1) {
         choice.classList.add("visible");
       }
@@ -323,34 +323,45 @@ function finishLineInstant() {
 }
 
 function advanceStory() {
-  // If currently typing, click finishes the line
+  if (!storyActive) return;
+
   if (isTyping) {
     finishLineInstant();
     return;
   }
 
-  // If last line already finished, do nothing (button is available)
   if (lineIndex >= storyLines.length - 1) {
     return;
   }
 
-  // Next line
   lineIndex++;
   startTypingCurrentLine();
 }
 
-/* Click on story advances line-by-line */
-story.addEventListener("click", advanceStory);
+/* Click ANYWHERE to advance, but don't hijack the button link */
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#startButton")) return; // let Begin work
+  if (e.target.closest("#choice")) return;      // let Look Around link work
+  if (!storyActive) return;
+  advanceStory();
+});
+
+/* (still let clicking the story itself work too, same behavior) */
+story.addEventListener("click", (e) => {
+  e.stopPropagation();
+  advanceStory();
+});
 
 startButton.addEventListener("click", () => {
   startScreen.classList.add("hidden");
   gameScreen.classList.add("visible");
   fadeInMusic();
 
-  // Reset story state every time (in case you re-test)
+  // Reset story state
   lineIndex = 0;
   charIndex = 0;
   isTyping = false;
+  storyActive = false;
   story.textContent = "";
   story.classList.remove("visible");
   choice.classList.remove("visible");
@@ -358,16 +369,17 @@ startButton.addEventListener("click", () => {
   // slow tired blink sequence
   let t = 400;
 
-  setTimeout(() => setEyelids("open1", 1200), t);  t += 1600; // open slow + linger
-  setTimeout(() => setEyelids("closed", 900), t);  t += 1400; // close slow + linger
-  setTimeout(() => setEyelids("open2", 1400), t);  t += 1800; // open deeper + linger
-  setTimeout(() => setEyelids("closed", 1000), t); t += 1600; // close slow + linger
-  setTimeout(() => setEyelids("open3", 2200), t);              // full open slow
+  setTimeout(() => setEyelids("open1", 1200), t);  t += 1600;
+  setTimeout(() => setEyelids("closed", 900), t);  t += 1400;
+  setTimeout(() => setEyelids("open2", 1400), t);  t += 1800;
+  setTimeout(() => setEyelids("closed", 1000), t); t += 1600;
+  setTimeout(() => setEyelids("open3", 2200), t);
 
   const fullyOpenAt = t + 2200;
 
-  // show picture for 4 seconds, then title for 4 seconds
-  const pictureHold = 4000;
+  // Timing: show picture for 4s, then title for 4s, but title appears 1.5s sooner
+  // So we reduce the pictureHold by 1500ms.
+  const pictureHold = 2500;  // was 4000
   const titleHold = 4000;
 
   const titleInAt = fullyOpenAt + pictureHold;
@@ -376,9 +388,9 @@ startButton.addEventListener("click", () => {
   setTimeout(() => title.classList.add("visible"), titleInAt);
   setTimeout(() => title.classList.remove("visible"), titleOutAt);
 
-  // then begin story line-by-line
   setTimeout(() => {
     story.classList.add("visible");
+    storyActive = true;
     startTypingCurrentLine();
   }, titleOutAt + 700);
 });
