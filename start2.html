@@ -1,1 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sea to Summit – Shore</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000;
+    }
+    body {
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #app {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: #000;
+    }
+
+    /* stage */
+    #stage {
+      width: 1920px;
+      height: 1080px;
+      position: relative;
+      transform-origin: center center;
+    }
+
+    #sceneLayer,
+    #frameLayer,
+    #uiLayer {
+      position: absolute;
+      inset: 0;
+    }
+
+    /* scene */
+    #sceneImage {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: pixelated;
+    }
+
+    #waterOverlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.75;
+      image-rendering: pixelated;
+      animation: waterDrift 6s linear infinite;
+    }
+
+    @keyframes waterDrift {
+      0%   { transform: translateX(-16px); }
+      50%  { transform: translateX(24px); }
+      100% { transform: translateX(-16px); }
+    }
+
+    /* frame */
+    #frameImage {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      image-rendering: pixelated;
+    }
+
+    /* dialogue */
+    #dialogue {
+      position: absolute;
+      left: 460px;
+      top: 745px;
+      width: 1000px;
+      height: 150px;
+      font-family: "Silkscreen", system-ui, sans-serif;
+      font-size: 22px;
+      line-height: 1.45;
+      color: #2b1607;
+      pointer-events: auto;
+    }
+
+    #dialogueHint {
+      position: absolute;
+      left: 460px;
+      top: 910px;
+      width: 1000px;
+      font-family: "Silkscreen", system-ui, sans-serif;
+      font-size: 16px;
+      color: rgba(43,22,7,0.55);
+      pointer-events: none;
+    }
+
+    /* buttons */
+    .btn {
+      position: relative;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+      outline: none;
+    }
+    .btn img {
+      display: block;
+      image-rendering: pixelated;
+    }
+    .btn span {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: 18px;
+      line-height: 1.2;
+      color: #2b1607;
+      text-align: center;
+      padding: 0 18px;
+      pointer-events: none;
+    }
+
+    /* choice buttons UNDER frame */
+    #choiceBtnWrap {
+      position: absolute;
+      left: 50%;
+      top: 1080px;
+      transform: translateX(-50%);
+      margin-top: 24px;
+      display: flex;
+      gap: 48px;
+      opacity: 0;
+      transition: opacity 700ms ease;
+      pointer-events: none;
+    }
+
+    #choiceBtnWrap.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #choiceBtnWrap .btn {
+      width: 520px;
+      height: 150px;
+    }
+    #choiceBtnWrap img {
+      width: 520px;
+      height: 150px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div id="stage">
+
+      <div id="sceneLayer">
+        <img id="sceneImage" src="island_base.png" alt="">
+        <img id="waterOverlay" src="water_overlay.png" alt="">
+      </div>
+
+      <div id="frameLayer">
+        <img id="frameImage" src="stsframe.png" alt="">
+      </div>
+
+      <div id="uiLayer">
+        <div id="dialogue"></div>
+        <div id="dialogueHint">click to finish text</div>
+
+        <div id="choiceBtnWrap">
+          <button class="btn choice" data-target="left">
+            <img src="stsbutton.png" alt="">
+            <span>Go left along the beach</span>
+          </button>
+
+          <button class="btn choice" data-target="grove">
+            <img src="stsbutton.png" alt="">
+            <span>Enter the palm grove</span>
+          </button>
+
+          <button class="btn choice" data-target="rocks">
+            <img src="stsbutton.png" alt="">
+            <span>Explore the rocky shoreline</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const BASE_W = 1920;
+    const BASE_H = 1080;
+
+    const stage = document.getElementById("stage");
+    const dialogue = document.getElementById("dialogue");
+    const dialogueHint = document.getElementById("dialogueHint");
+    const choiceBtnWrap = document.getElementById("choiceBtnWrap");
+
+    const text =
+      "You sit up slowly. The tide keeps its rhythm. The tree line feels closer than it should.";
+
+    function scaleStage() {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const s = Math.min(vw / BASE_W, vh / BASE_H);
+      stage.style.transform = `scale(${s})`;
+    }
+    window.addEventListener("resize", scaleStage);
+    scaleStage();
+
+    let typing = true;
+    let i = 0;
+    const speed = 38;
+    dialogue.textContent = "";
+
+    function typeTick() {
+      if (!typing) return;
+      i++;
+      dialogue.textContent = text.slice(0, i);
+      if (i < text.length) {
+        setTimeout(typeTick, 1000 / speed);
+      } else {
+        typing = false;
+        dialogueHint.style.display = "none";
+        choiceBtnWrap.classList.add("visible");
+      }
+    }
+
+    typeTick();
+
+    dialogue.addEventListener("click", () => {
+      if (!typing) return;
+      typing = false;
+      dialogue.textContent = text;
+      dialogueHint.style.display = "none";
+      choiceBtnWrap.classList.add("visible");
+    });
+
+    document.querySelectorAll(".choice").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const t = btn.dataset.target;
+        if (t === "left") window.location.href = "beach_left.html";
+        if (t === "grove") window.location.href = "palm_grove.html";
+        if (t === "rocks") window.location.href = "rocky_shore.html";
+      });
+    });
+  </script>
+</body>
+</html>
