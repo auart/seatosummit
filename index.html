@@ -33,7 +33,6 @@ html, body {
   z-index: 100;
   transition: opacity 700ms ease;
 }
-
 .start-screen.hidden {
   opacity: 0;
   pointer-events: none;
@@ -69,7 +68,6 @@ html, body {
   pointer-events: none;
   transition: opacity 700ms ease;
 }
-
 .game-screen.visible {
   opacity: 1;
   pointer-events: auto;
@@ -102,17 +100,16 @@ html, body {
 }
 
 .scene { z-index: 1; }
-
-/* frame always on top */
 .frame { z-index: 10; }
 
-/* title */
+/* TITLE: full size to fill the inner frame area */
 .title {
   position: absolute;
   left: 50%;
   top: 120px;
   transform: translateX(-50%);
-  width: 1100px;
+  width: 1720px;
+  max-width: 1720px;
   image-rendering: pixelated;
   opacity: 0;
   transition: opacity 700ms ease;
@@ -120,37 +117,37 @@ html, body {
 }
 .title.visible { opacity: 1; }
 
-/* story text placed inside the bottom plaque area */
+/* STORY: squeezed and moved up for the textbox */
 .story {
   position: absolute;
   left: 50%;
-  bottom: 120px;
+  bottom: 150px;
   transform: translateX(-50%);
-  width: 1400px;
+  width: 1200px;
   font-family: "Silkscreen";
-  font-size: 28px;
-  line-height: 1.35;
+  font-size: 26px;
+  line-height: 1.25;
   color: black;
   text-shadow: none;
   opacity: 0;
   transition: opacity 500ms ease;
   cursor: pointer;
   z-index: 15;
-  padding-left: 120px;
-  padding-right: 120px;
+  padding-left: 80px;
+  padding-right: 80px;
   box-sizing: border-box;
 }
 .story.visible { opacity: 1; }
 
-/* choice button under the frame, close to bottom, behind the frame if overlapping */
+/* CHOICE: on top of everything, close to bottom (20px) */
 .choice {
   position: absolute;
   left: 50%;
-  bottom: 210px;
+  bottom: 20px;
   transform: translateX(-50%);
   opacity: 0;
   transition: opacity 700ms ease;
-  z-index: 5;
+  z-index: 30;
   text-decoration: none;
 }
 .choice.visible { opacity: 1; }
@@ -238,6 +235,9 @@ function fadeInMusic() {
 }
 
 function typeText() {
+  clearInterval(typing);
+  index = 0;
+  story.textContent = "";
   typing = setInterval(() => {
     index++;
     story.textContent = text.slice(0, index);
@@ -262,12 +262,16 @@ startButton.addEventListener("click", () => {
   fadeInMusic();
 
   setTimeout(() => fadeMask.classList.add("clear"), 100);
+
   setTimeout(() => title.classList.add("visible"), 900);
-  setTimeout(() => title.classList.remove("visible"), 5900);
+
+  /* title visible for 3.5 seconds */
+  setTimeout(() => title.classList.remove("visible"), 4400);
+
   setTimeout(() => {
     story.classList.add("visible");
     typeText();
-  }, 6700);
+  }, 5200);
 });
 </script>
 </body>
