@@ -116,15 +116,15 @@ html, body {
 }
 .title-layer.visible { opacity: 1; }
 
-/* Story text: nudged right 10px, same vertical placement */
+/* Story text: shifted right another 10px, slightly smaller */
 .story {
   position: absolute;
-  left: calc(50% + 10px);
+  left: calc(50% + 20px);
   bottom: 200px;
   transform: translateX(-50%);
   width: 960px;
   font-family: "Silkscreen";
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1.2;
   color: black;
   opacity: 0;
@@ -137,7 +137,7 @@ html, body {
 }
 .story.visible { opacity: 1; }
 
-/* Look Around button: additional 7% smaller (total ~84%) */
+/* Look Around button: same scale, slightly larger text */
 .choice {
   position: absolute;
   left: 50%;
@@ -187,7 +187,7 @@ html, body {
         <a href="start2.html" class="choice" id="choice">
           <div class="button">
             <img src="stsbutton.png">
-            <span style="font-size:18px;">Look Around</span>
+            <span style="font-size:20px;">Look Around</span>
           </div>
         </a>
 
