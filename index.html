@@ -1,77 +1,290 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Sea to Summit</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sea to Summit</title>
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: black;
-    }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: black;
+}
 
-    .scene {
-      position: relative;
-      width: 1920px;
-      height: 1080px;
-    }
+.app {
+  position: fixed;
+  inset: 0;
+  background: black;
+}
 
-    .scene img.background {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 1920px;
-      height: 1080px;
-      image-rendering: pixelated;
-    }
+/* START SCREEN */
+.start-screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: black;
+  z-index: 100;
+  transition: opacity 700ms ease;
+}
 
-    .begin-button {
-      position: absolute;
-      left: 50%;
-      bottom: 120px;
-      transform: translateX(-50%);
-      cursor: pointer;
-    }
+.start-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
 
-    .begin-button img {
-      image-rendering: pixelated;
-    }
-  </style>
+.button {
+  position: relative;
+  cursor: pointer;
+}
+
+.button img {
+  width: 420px;
+  image-rendering: pixelated;
+}
+
+.button span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: "Press Start 2P";
+  font-size: 22px;
+  color: white;
+  pointer-events: none;
+}
+
+/* GAME SCREEN */
+.game-screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 700ms ease;
+}
+
+.game-screen.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 1920x1080 STAGE */
+.stage-wrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  width: 1920px;
+  height: 1080px;
+}
+
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+}
+
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.scene { z-index: 1; }
+
+.water {
+  z-index: 2;
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  animation: waterSlide 6s ease-in-out infinite alternate;
+}
+
+.frame { z-index: 3; }
+
+@keyframes waterSlide {
+  from { transform: translateX(-4%); }
+  to { transform: translateX(4%); }
+}
+
+/* TITLE */
+.title {
+  position: absolute;
+  left: 50%;
+  top: 120px;
+  transform: translateX(-50%);
+  width: 1100px;
+  image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 700ms ease;
+  z-index: 10;
+}
+
+.title.visible { opacity: 1; }
+
+/* STORY TEXT */
+.story {
+  position: absolute;
+  left: 50%;
+  bottom: 220px;
+  transform: translateX(-50%);
+  width: 1400px;
+  font-family: "Silkscreen";
+  font-size: 28px;
+  line-height: 1.35;
+  color: white;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.7);
+  opacity: 0;
+  transition: opacity 500ms ease;
+  cursor: pointer;
+  z-index: 20;
+}
+
+.story.visible { opacity: 1; }
+
+/* CHOICE BUTTON */
+.choice {
+  position: absolute;
+  left: 50%;
+  bottom: 360px;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 700ms ease;
+  z-index: 30;
+}
+
+.choice.visible {
+  opacity: 1;
+}
+
+/* FADE MASK */
+.fade-mask {
+  position: absolute;
+  inset: 0;
+  background: black;
+  opacity: 1;
+  transition: opacity 1200ms ease;
+  z-index: 50;
+}
+
+.fade-mask.clear {
+  opacity: 0;
+}
+</style>
 </head>
 
 <body>
+<div class="app">
 
-  <div class="scene">
-
-    <!-- FULL COMPOSED IMAGE -->
-    <img
-      src="starthome.png"
-      class="background"
-      alt="Start Scene"
-    >
-
-    <!-- BEGIN BUTTON -->
-    <div class="begin-button" onclick="startGame()">
-      <img src="stsbutton.png" alt="Begin">
+  <div class="start-screen" id="startScreen">
+    <div class="button" id="startButton">
+      <img src="stsbutton.png">
+      <span>Begin</span>
     </div>
-
   </div>
 
-  <script>
-    function startGame() {
-      window.location.href = "start2.html";
-    }
-  </script>
+  <div class="game-screen" id="gameScreen">
+    <div class="stage-wrapper" id="stageWrapper">
+      <div class="stage">
+        <img class="layer scene" src="starthome.png">
+        <img class="layer water" src="water_overlay.png">
+        <img class="layer frame" src="stsframe2.png">
+        <img class="title" id="title" src="stslogo2.png">
+        <div class="story" id="story"></div>
+        <a href="start2.html" class="choice" id="choice">
+          <div class="button">
+            <img src="stsbutton.png">
+            <span style="font-size:18px;">Look Around</span>
+          </div>
+        </a>
+        <div class="fade-mask" id="fadeMask"></div>
+      </div>
+    </div>
+  </div>
 
+  <audio id="music" src="starttheme.m4a" preload="auto"></audio>
+
+</div>
+
+<script>
+const startScreen = document.getElementById("startScreen");
+const gameScreen = document.getElementById("gameScreen");
+const startButton = document.getElementById("startButton");
+const title = document.getElementById("title");
+const story = document.getElementById("story");
+const choice = document.getElementById("choice");
+const fadeMask = document.getElementById("fadeMask");
+const music = document.getElementById("music");
+const stageWrapper = document.getElementById("stageWrapper");
+
+const text = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
+let index = 0;
+let typing;
+
+function scaleStage() {
+  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+}
+
+window.addEventListener("resize", scaleStage);
+scaleStage();
+
+function fadeInMusic() {
+  music.volume = 0;
+  music.play();
+  let v = 0;
+  const fade = setInterval(() => {
+    v += 0.03;
+    music.volume = Math.min(v, 0.9);
+    if (v >= 0.9) clearInterval(fade);
+  }, 80);
+}
+
+function typeText() {
+  typing = setInterval(() => {
+    index++;
+    story.textContent = text.slice(0, index);
+    if (index >= text.length) {
+      clearInterval(typing);
+      choice.classList.add("visible");
+    }
+  }, 30);
+}
+
+story.addEventListener("click", () => {
+  if (index < text.length) {
+    clearInterval(typing);
+    story.textContent = text;
+    choice.classList.add("visible");
+  }
+});
+
+startButton.addEventListener("click", () => {
+  startScreen.classList.add("hidden");
+  gameScreen.classList.add("visible");
+  fadeInMusic();
+
+  setTimeout(() => fadeMask.classList.add("clear"), 100);
+  setTimeout(() => title.classList.add("visible"), 900);
+  setTimeout(() => title.classList.remove("visible"), 5900);
+  setTimeout(() => {
+    story.classList.add("visible");
+    typeText();
+  }, 6700);
+});
+</script>
 </body>
 </html>
