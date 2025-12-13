@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sea to Summit</title>
+  <title>Sea to Summit, Start 2</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,6 @@
     body { overflow: hidden; user-select: none; }
 
     :root{
-      /* Your measured values */
       --win-x: 772.3733px;
       --win-y: 417.491px;
       --win-w: 828.2474px;
@@ -27,35 +26,7 @@
     }
 
     #app { position: fixed; inset: 0; background: #000; }
-
-    #startScreen{
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: #000;
-      opacity: 1;
-      transition: opacity 600ms ease;
-      z-index: 50;
-    }
-    #startScreen.hidden{
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    #stageWrap{
-      position: fixed;
-      inset: 0;
-      background: #000;
-      opacity: 0;
-      transition: opacity 900ms ease;
-      pointer-events: none;
-      z-index: 10;
-    }
-    #stageWrap.visible{
-      opacity: 1;
-      pointer-events: auto;
-    }
+    #stageWrap { position: fixed; inset: 0; background: #000; }
 
     #stage{
       width: 1920px;
@@ -66,19 +37,6 @@
       transform-origin: center center;
     }
 
-    #frameImage{
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      image-rendering: pixelated;
-      opacity: 0;
-      transition: opacity 900ms ease;
-    }
-    #frameImage.visible{ opacity: 1; }
-
-    /* Clipped window where scene lives */
     #window{
       position: absolute;
       left: var(--win-x);
@@ -86,10 +44,7 @@
       width: var(--win-w);
       height: var(--win-h);
       overflow: hidden;
-      opacity: 0;
-      transition: opacity 900ms ease;
     }
-    #window.visible{ opacity: 1; }
 
     #sceneImage{
       position: absolute;
@@ -117,21 +72,15 @@
       100% { transform: translateX(-14px); }
     }
 
-    /* Logo centered inside the frame opening */
-    #logo{
+    #frameImage{
       position: absolute;
-      left: calc(var(--win-x) + (var(--win-w) / 2));
-      top: calc(var(--win-y) + (var(--win-h) / 2));
-      transform: translate(-50%, -50%);
-      width: min(980px, calc(var(--win-w) * 0.92));
-      image-rendering: pixelated;
-      opacity: 0;
-      transition: opacity 900ms ease;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       pointer-events: none;
+      image-rendering: pixelated;
     }
-    #logo.visible{ opacity: 1; }
 
-    /* Dialogue inside the light box */
     #dialogue{
       position: absolute;
       left: var(--txt-x);
@@ -142,13 +91,9 @@
       font-size: 22px;
       line-height: 1.45;
       color: #2b1607;
-      opacity: 0;
-      transition: opacity 700ms ease;
       pointer-events: auto;
       overflow: hidden;
-      white-space: normal;
     }
-    #dialogue.visible{ opacity: 1; }
 
     #dialogueHint{
       position: absolute;
@@ -158,13 +103,9 @@
       font-family: "Silkscreen", system-ui, sans-serif;
       font-size: 16px;
       color: rgba(43,22,7,0.55);
-      opacity: 0;
-      transition: opacity 700ms ease;
       pointer-events: none;
     }
-    #dialogueHint.visible{ opacity: 1; }
 
-    /* Buttons */
     .btn{
       position: relative;
       border: 0;
@@ -180,24 +121,22 @@
       display: grid;
       place-items: center;
       font-family: "Press Start 2P", system-ui, sans-serif;
+      font-size: 18px;
+      line-height: 1.2;
       color: #2b1607;
-      pointer-events: none;
       text-align: center;
       padding: 0 18px;
-      line-height: 1.2;
+      pointer-events: none;
     }
 
-    #beginBtn{ width: 520px; height: 150px; }
-    #beginBtn img{ width: 520px; height: 150px; }
-    #beginBtn span{ font-size: 28px; }
-
-    /* Choice button under the frame */
     #choiceBtnWrap{
       position: absolute;
       left: 50%;
       top: 1080px;
       transform: translateX(-50%);
       margin-top: 24px;
+      display: flex;
+      gap: 48px;
       opacity: 0;
       transition: opacity 700ms ease;
       pointer-events: none;
@@ -207,24 +146,23 @@
       opacity: 1;
       pointer-events: auto;
     }
-    #choiceBtn{ width: 620px; height: 150px; }
-    #choiceBtn img{ width: 620px; height: 150px; }
-    #choiceBtn span{ font-size: 22px; }
+
+    #choiceBtnWrap .btn{
+      width: 520px;
+      height: 150px;
+    }
+    #choiceBtnWrap img{
+      width: 520px;
+      height: 150px;
+    }
   </style>
 </head>
 
 <body>
   <div id="app">
-
-    <div id="startScreen">
-      <button id="beginBtn" class="btn" type="button" aria-label="Begin">
-        <img src="stsbutton.png" alt="">
-        <span>Begin</span>
-      </button>
-    </div>
-
     <div id="stageWrap">
       <div id="stage">
+
         <div id="window">
           <img id="sceneImage" src="island_base.png" alt="">
           <img id="waterOverlay" src="water_overlay.png" alt="">
@@ -232,21 +170,28 @@
 
         <img id="frameImage" src="stsframe.png" alt="">
 
-        <img id="logo" src="stslogo.png" alt="Sea to Summit">
-
         <div id="dialogue"></div>
         <div id="dialogueHint">click to finish text</div>
 
         <div id="choiceBtnWrap">
-          <button id="choiceBtn" class="btn" type="button" aria-label="Look Around">
+          <button class="btn choice" data-target="left">
             <img src="stsbutton.png" alt="">
-            <span>Look Around</span>
+            <span>Go left along the beach</span>
+          </button>
+
+          <button class="btn choice" data-target="grove">
+            <img src="stsbutton.png" alt="">
+            <span>Enter the palm grove</span>
+          </button>
+
+          <button class="btn choice" data-target="rocks">
+            <img src="stsbutton.png" alt="">
+            <span>Explore the rocky shoreline</span>
           </button>
         </div>
+
       </div>
     </div>
-
-    <audio id="music" src="starttheme.m4a" preload="auto"></audio>
   </div>
 
   <script>
@@ -286,108 +231,47 @@
     }
     maybeFlipY();
 
-    const startScreen = document.getElementById("startScreen");
-    const stageWrap = document.getElementById("stageWrap");
-    const beginBtn = document.getElementById("beginBtn");
-
-    const music = document.getElementById("music");
-    const windowClip = document.getElementById("window");
-    const frameImage = document.getElementById("frameImage");
-    const logo = document.getElementById("logo");
-
     const dialogue = document.getElementById("dialogue");
     const dialogueHint = document.getElementById("dialogueHint");
     const choiceBtnWrap = document.getElementById("choiceBtnWrap");
-    const choiceBtn = document.getElementById("choiceBtn");
 
-    const introText = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
+    const text = "You sit up slowly. The tide keeps its rhythm. The tree line feels closer than it should.";
 
-    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+    let typing = true;
+    let i = 0;
+    const cps = 38;
+    let timer = null;
 
-    function fadeInMusic(durationMs = 1800, targetVol = 1.0){
-      music.volume = 0;
-      const start = performance.now();
-      const step = (t) => {
-        const p = Math.min(1, (t - start) / durationMs);
-        music.volume = targetVol * p;
-        if (p < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    }
-
-    let typing = false;
-    let typedAll = false;
-    let typeTimer = null;
-
-    function clearTyping(){
-      if (typeTimer) { clearTimeout(typeTimer); typeTimer = null; }
-      typing = false;
-    }
-
-    function typewriter(text, cps = 38){
-      clearTyping();
-      typing = true;
-      typedAll = false;
-      dialogue.textContent = "";
-      let i = 0;
-      const delay = Math.max(10, Math.floor(1000 / cps));
-
-      const tick = () => {
-        if (!typing) return;
-        i += 1;
-        dialogue.textContent = text.slice(0, i);
-        if (i < text.length) {
-          typeTimer = setTimeout(tick, delay);
-        } else {
-          typing = false;
-          typedAll = true;
-          dialogueHint.classList.remove("visible");
-          choiceBtnWrap.classList.add("visible");
-        }
-      };
-      tick();
-    }
-
-    function finishTypingInstant(){
+    function typeTick(){
       if (!typing) return;
-      clearTyping();
-      dialogue.textContent = introText;
-      typedAll = true;
-      dialogueHint.classList.remove("visible");
-      choiceBtnWrap.classList.add("visible");
+      i += 1;
+      dialogue.textContent = text.slice(0, i);
+      if (i < text.length) {
+        timer = setTimeout(typeTick, Math.max(10, Math.floor(1000 / cps)));
+      } else {
+        typing = false;
+        dialogueHint.style.display = "none";
+        choiceBtnWrap.classList.add("visible");
+      }
     }
-
-    beginBtn.addEventListener("click", async () => {
-      try { await music.play(); } catch (e) {}
-      fadeInMusic(1800, 1.0);
-
-      startScreen.classList.add("hidden");
-      stageWrap.classList.add("visible");
-
-      await sleep(150);
-      windowClip.classList.add("visible");
-
-      await sleep(150);
-      frameImage.classList.add("visible");
-
-      await sleep(600);
-      logo.classList.add("visible");
-
-      await sleep(3000);
-      logo.classList.remove("visible");
-
-      await sleep(650);
-      dialogue.classList.add("visible");
-      dialogueHint.classList.add("visible");
-      typewriter(introText, 38);
-    });
+    typeTick();
 
     dialogue.addEventListener("click", () => {
-      if (!typedAll) finishTypingInstant();
+      if (!typing) return;
+      typing = false;
+      if (timer) clearTimeout(timer);
+      dialogue.textContent = text;
+      dialogueHint.style.display = "none";
+      choiceBtnWrap.classList.add("visible");
     });
 
-    choiceBtn.addEventListener("click", () => {
-      window.location.href = "start2.html";
+    document.querySelectorAll(".choice").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const t = btn.dataset.target;
+        if (t === "left") window.location.href = "beach_left.html";
+        if (t === "grove") window.location.href = "palm_grove.html";
+        if (t === "rocks") window.location.href = "rocky_shore.html";
+      });
     });
   </script>
 </body>
