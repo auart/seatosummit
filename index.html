@@ -17,7 +17,7 @@ html, body{
   overflow:hidden;
 }
 
-/* The whole game scales as one unit */
+/* Scale the whole game as one unit */
 #stage{
   position:fixed;
   left:50%;
@@ -28,7 +28,7 @@ html, body{
   transform-origin:center center;
 }
 
-/* Start overlay */
+/* ---------- START SCREEN ---------- */
 #startScreen{
   position:absolute;
   inset:0;
@@ -65,46 +65,20 @@ html, body{
   pointer-events:none;
 }
 
-/* Window cutout coordinates (your new numbers) */
-#window{
+/* ---------- FRAME WRAPPER (CENTERED) ---------- */
+/* These are your Illustrator window numbers */
+#frameWrapper{
   position:absolute;
-  left:963.8801px;
-  top:440.1124px;
-  width:919.8045px;
-  height:607.4107px;
-  overflow:hidden;
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+  width:1920px;
+  height:1080px;
   opacity:0;
-  transition:opacity 900ms ease;
+  transition: opacity 900ms ease;
 }
 
-/* Fit island_base.png into the window without needing 1920x1080 exports */
-#sceneImage{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover; /* change to contain if you want no cropping */
-  image-rendering:pixelated;
-}
-
-#waterOverlay{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  opacity:0.35;
-  pointer-events:none;
-  image-rendering:pixelated;
-  animation:waterMove 6s linear infinite;
-}
-
-@keyframes waterMove{
-  0%{ transform: translateX(0); }
-  100%{ transform: translateX(-40px); }
-}
-
-/* Frame and Logo as exact 1920x1080 layers */
+/* Frame image is exact 1920x1080 */
 #frameImg{
   position:absolute;
   left:0;
@@ -113,10 +87,10 @@ html, body{
   height:1080px;
   image-rendering:pixelated;
   pointer-events:none;
-  opacity:0;
-  transition:opacity 900ms ease;
+  z-index:5;
 }
 
+/* Logo image is exact 1920x1080 */
 #logoImg{
   position:absolute;
   left:0;
@@ -126,10 +100,48 @@ html, body{
   image-rendering:pixelated;
   pointer-events:none;
   opacity:0;
-  transition:opacity 900ms ease;
+  transition: opacity 900ms ease;
+  z-index:6;
 }
 
-/* Text box coordinates (your new numbers) */
+/* ---------- WINDOW OPENING (POSITIONED INSIDE FRAME) ---------- */
+/* Your measured opening coords */
+#window{
+  position:absolute;
+  left:963.8801px;
+  top:440.1124px;
+  width:919.8045px;
+  height:607.4107px;
+  overflow:hidden;
+  z-index:1;
+}
+
+/* The key fix: center the image inside the window */
+#sceneImage, #waterOverlay{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+  min-width:100%;
+  min-height:100%;
+  image-rendering:pixelated;
+}
+
+/* Water overlay animation */
+#waterOverlay{
+  opacity:0.35;
+  pointer-events:none;
+  animation: waterMove 6s linear infinite;
+}
+
+@keyframes waterMove{
+  0%   { transform: translate(-50%, -50%) translateX(0); }
+  50%  { transform: translate(-50%, -50%) translateX(-12px); }
+  100% { transform: translate(-50%, -50%) translateX(0); }
+}
+
+/* ---------- TEXT BOX (POSITIONED) ---------- */
+/* Your measured textbox coords */
 #dialogueWrap{
   position:absolute;
   left:965.8681px;
@@ -139,6 +151,7 @@ html, body{
   opacity:0;
   transition:opacity 500ms ease;
   overflow:hidden;
+  z-index:10;
 }
 
 #dialogue{
@@ -149,7 +162,7 @@ html, body{
   cursor:pointer;
 }
 
-/* Choice button */
+/* ---------- CHOICE BUTTON ---------- */
 #lookAroundWrap{
   position:absolute;
   left:50%;
@@ -158,6 +171,7 @@ html, body{
   opacity:0;
   transition:opacity 600ms ease;
   pointer-events:none;
+  z-index:20;
 }
 
 #lookAroundWrap.visible{
@@ -208,23 +222,27 @@ html, body{
     </button>
   </div>
 
-  <div id="window">
-    <img id="sceneImage" src="island_base.png" alt="">
-    <img id="waterOverlay" src="water_overlay.png" alt="">
-  </div>
+  <div id="frameWrapper">
 
-  <img id="frameImg" src="stsframe2.png" alt="">
-  <img id="logoImg" src="stslogo2.png" alt="">
+    <div id="window">
+      <img id="sceneImage" src="island_base.png" alt="">
+      <img id="waterOverlay" src="water_overlay.png" alt="">
+    </div>
 
-  <div id="dialogueWrap">
-    <div id="dialogue"></div>
-  </div>
+    <img id="frameImg" src="stsframe2.png" alt="">
+    <img id="logoImg" src="stslogo2.png" alt="">
 
-  <div id="lookAroundWrap">
-    <button id="lookAroundBtn" type="button">
-      <img src="stsbutton.png" alt="">
-      <span>Look Around</span>
-    </button>
+    <div id="dialogueWrap">
+      <div id="dialogue"></div>
+    </div>
+
+    <div id="lookAroundWrap">
+      <button id="lookAroundBtn" type="button">
+        <img src="stsbutton.png" alt="">
+        <span>Look Around</span>
+      </button>
+    </div>
+
   </div>
 
   <audio id="music" src="starttheme.m4a" preload="auto" loop></audio>
@@ -247,12 +265,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const beginBtn = document.getElementById("beginBtn");
   const startScreen = document.getElementById("startScreen");
-  const frameImg = document.getElementById("frameImg");
-  const windowEl = document.getElementById("window");
+
+  const frameWrapper = document.getElementById("frameWrapper");
   const logoImg = document.getElementById("logoImg");
 
   const dialogueWrap = document.getElementById("dialogueWrap");
   const dialogue = document.getElementById("dialogue");
+
   const lookAroundWrap = document.getElementById("lookAroundWrap");
   const lookAroundBtn = document.getElementById("lookAroundBtn");
 
@@ -310,8 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
     try{ await music.play(); }catch(e){}
     fadeInMusic();
 
-    windowEl.classList.add("visible");
-    frameImg.classList.add("visible");
+    frameWrapper.classList.add("visible");
 
     await sleep(700);
     logoImg.classList.add("visible");
