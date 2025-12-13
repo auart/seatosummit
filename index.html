@@ -1,239 +1,304 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sea to Summit</title>
+<meta charset="utf-8">
+<title>Sea to Summit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
-  <style>
-    html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
-    body { user-select: none; }
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  background: black;
+  overflow: hidden;
+}
 
-    #startScreen{
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: #000;
-      z-index: 50;
-    }
+#startScreen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: black;
+  z-index: 100;
+}
 
-    #stage{
-      width: 1920px;
-      height: 1080px;
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform-origin: center center;
-    }
+#stage {
+  width: 1920px;
+  height: 1080px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform-origin: center;
+}
 
-    #frame{
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      image-rendering: pixelated;
-      opacity: 0;
-      transition: opacity 900ms ease;
-    }
+/* FRAME WINDOW */
+#window {
+  position: absolute;
+  left: 772.3733px;
+  top: 417.491px;
+  width: 828.2474px;
+  height: 546.9492px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 1s ease;
+}
 
-    #window{
-      position: absolute;
-      left: 772.3733px;
-      top: 417.491px;
-      width: 828.2474px;
-      height: 546.9492px;
-      overflow: hidden;
-      opacity: 0;
-      transition: opacity 900ms ease;
-    }
+/* FULL SCENE OFFSET */
+#sceneImage {
+  position: absolute;
+  left: -772.3733px;
+  top: -417.491px;
+  width: 1920px;
+  height: 1080px;
+  image-rendering: pixelated;
+}
 
-    #sceneImage{
-      position: absolute;
-      left: -772.3733px;
-      top: -417.491px;
-      width: 1920px;
-      height: 1080px;
-      image-rendering: pixelated;
-    }
+#waterOverlay {
+  position: absolute;
+  left: -772.3733px;
+  top: -417.491px;
+  width: 1920px;
+  height: 1080px;
+  opacity: 0.75;
+  image-rendering: pixelated;
+  animation: waterDrift 6s linear infinite;
+}
 
-    #waterOverlay{
-      position: absolute;
-      left: -772.3733px;
-      top: -417.491px;
-      width: 1920px;
-      height: 1080px;
-      opacity: 0.75;
-      pointer-events: none;
-      image-rendering: pixelated;
-      animation: waterDrift 6s linear infinite;
-      will-change: transform;
-    }
+@keyframes waterDrift {
+  0% { transform: translateX(-14px); }
+  50% { transform: translateX(22px); }
+  100% { transform: translateX(-14px); }
+}
 
-    @keyframes waterDrift{
-      0% { transform: translateX(-14px); }
-      50% { transform: translateX(22px); }
-      100% { transform: translateX(-14px); }
-    }
+#frame {
+  position: absolute;
+  inset: 0;
+  image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 1s ease;
+  pointer-events: none;
+}
 
-    #logo{
-      position: absolute;
-      left: calc(772.3733px + 828.2474px / 2);
-      top: calc(417.491px + 546.9492px / 2);
-      transform: translate(-50%, -50%);
-      width: 740px;
-      image-rendering: pixelated;
-      opacity: 0;
-      transition: opacity 900ms ease;
-      pointer-events: none;
-    }
+#logo {
+  position: absolute;
+  left: calc(772.3733px + 414.1237px);
+  top: calc(417.491px + 273.4746px);
+  transform: translate(-50%, -50%);
+  width: 740px;
+  image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 1s ease;
+  pointer-events: none;
+}
 
-    #dialogue{
-      position: absolute;
-      left: 773.1405px;
-      top: 798.7486px;
-      width: 732.9919px;
-      height: 76.155px;
-      font-family: "Silkscreen", system-ui, sans-serif;
-      font-size: 22px;
-      line-height: 1.45;
-      color: #2b1607;
-      opacity: 0;
-      transition: opacity 700ms ease;
-      cursor: pointer;
-      overflow: hidden;
-    }
+#dialogue {
+  position: absolute;
+  left: 773.1405px;
+  top: 798.7486px;
+  width: 732.9919px;
+  height: 76.155px;
+  font-family: Silkscreen, monospace;
+  font-size: 22px;
+  line-height: 1.45;
+  color: #2b1607;
+  opacity: 0;
+  cursor: pointer;
+  overflow: hidden;
+}
 
-    .btn{
-      background: transparent;
-      border: 0;
-      padding: 0;
-      position: relative;
-      cursor: pointer;
-    }
-    .btn img{ display: block; image-rendering: pixelated; }
-    .btn span{
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      font-family: "Press Start 2P", system-ui, sans-serif;
-      color: #2b1607;
-      text-align: center;
-      pointer-events: none;
-    }
+/* BUTTONS */
+.btn {
+  background: none;
+  border: none;
+  padding: 0;
+  position: relative;
+  cursor: pointer;
+}
 
-    #beginBtn{ width: 520px; height: 150px; }
-    #beginBtn img{ width: 520px; height: 150px; }
-    #beginBtn span{ font-size: 28px; }
+.btn img {
+  image-rendering: pixelated;
+  display: block;
+}
 
-    #lookAroundWrap{
-      position: absolute;
-      left: 50%;
-      top: 1080px;
-      transform: translateX(-50%);
-      margin-top: 24px;
-      opacity: 0;
-      transition: opacity 700ms ease;
-      pointer-events: none;
-      z-index: 100;
-    }
-    #lookAroundWrap.visible{
-      opacity: 1;
-      pointer-events: auto;
-    }
-    #lookAroundBtn{ width: 620px; height: 150px; }
-    #lookAroundBtn img{ width: 620px; height: 150px; }
-    #lookAroundBtn span{ font-size: 22px; }
-  </style>
+.btn span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: "Press Start 2P";
+  color: #2b1607;
+  pointer-events: none;
+}
+
+#beginBtn {
+  width: 520px;
+  height: 150px;
+}
+
+#beginBtn span {
+  font-size: 28px;
+}
+
+#lookAroundWrap {
+  position: absolute;
+  left: 50%;
+  top: 1080px;
+  transform: translateX(-50%);
+  margin-top: 24px;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+}
+
+#lookAroundWrap.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#lookAroundBtn {
+  width: 620px;
+  height: 150px;
+}
+
+#lookAroundBtn span {
+  font-size: 22px;
+}
+</style>
 </head>
 
 <body>
-  <div id="startScreen">
-    <button id="beginBtn" class="btn" type="button">
+
+<div id="startScreen">
+  <button id="beginBtn" class="btn" type="button">
+    <img src="stsbutton.png" alt="">
+    <span>Begin</span>
+  </button>
+</div>
+
+<div id="stage">
+
+  <div id="window">
+    <img id="sceneImage" src="island_base.png" alt="">
+    <img id="waterOverlay" src="water_overlay.png" alt="">
+  </div>
+
+  <img id="frame" src="stsframe.png" alt="">
+  <img id="logo" src="stslogo.png" alt="Sea to Summit">
+
+  <div id="dialogue"></div>
+
+  <div id="lookAroundWrap">
+    <button id="lookAroundBtn" class="btn" type="button">
       <img src="stsbutton.png" alt="">
-      <span>Begin</span>
+      <span>Look Around</span>
     </button>
   </div>
 
-  <div id="stage">
-    <div id="window">
-      <img id="sceneImage" src="island_base.png" alt="">
-      <img id="waterOverlay" src="water_overlay.png" alt="">
-    </div>
+</div>
 
-    <img id="frame" src="stsframe.png" alt="">
-    <img id="logo" src="stslogo.png" alt="Sea to Summit">
-    <div id="dialogue"></div>
+<audio id="music" src="starttheme.m4a" preload="auto"></audio>
 
-    <div id="lookAroundWrap">
-      <button id="lookAroundBtn" class="btn" type="button">
-        <img src="stsbutton.png" alt="">
-        <span>Look Around</span>
-      </button>
-    </div>
-  </div>
+<script>
+const BASE_W = 1920;
+const BASE_H = 1080;
 
-  <audio id="music" src="starttheme.m4a" preload="auto"></audio>
+function scaleStage() {
+  const stage = document.getElementById("stage");
+  const s = Math.min(window.innerWidth / BASE_W, window.innerHeight / BASE_H);
+  stage.style.transform = "translate(-50%, -50%) scale(" + s + ")";
+}
+window.addEventListener("resize", scaleStage);
+scaleStage();
 
-  <script>
-    const BASE_W = 1920;
-    const BASE_H = 1080;
+const beginBtn = document.getElementById("beginBtn");
+const startScreen = document.getElementById("startScreen");
+const music = document.getElementById("music");
 
-    const stage = document.getElementById("stage");
-    function scaleStage(){
-      const s = Math.min(window.innerWidth / BASE_W, window.innerHeight / BASE_H);
-      stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+const windowEl = document.getElementById("window");
+const frame = document.getElementById("frame");
+const logo = document.getElementById("logo");
+const dialogue = document.getElementById("dialogue");
+const lookAroundWrap = document.getElementById("lookAroundWrap");
+const lookAroundBtn = document.getElementById("lookAroundBtn");
+
+const introText = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function fadeInMusic(duration) {
+  music.volume = 0;
+  const start = performance.now();
+  function step(t) {
+    const p = Math.min(1, (t - start) / duration);
+    music.volume = p;
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+let typing = false;
+let timer = null;
+
+function typewriter(text, cps) {
+  if (timer) clearTimeout(timer);
+  typing = true;
+  dialogue.textContent = "";
+  let i = 0;
+  const delay = Math.max(10, 1000 / cps);
+
+  function tick() {
+    if (!typing) return;
+    i++;
+    dialogue.textContent = text.slice(0, i);
+    if (i < text.length) {
+      timer = setTimeout(tick, delay);
+    } else {
+      typing = false;
+      lookAroundWrap.classList.add("visible");
     }
-    window.addEventListener("resize", scaleStage);
-    scaleStage();
+  }
+  tick();
+}
 
-    const beginBtn = document.getElementById("beginBtn");
-    const startScreen = document.getElementById("startScreen");
-    const music = document.getElementById("music");
+beginBtn.addEventListener("click", async () => {
+  startScreen.style.display = "none";
 
-    const windowEl = document.getElementById("window");
-    const frame = document.getElementById("frame");
-    const logo = document.getElementById("logo");
+  try { await music.play(); } catch(e) {}
+  fadeInMusic(1800);
 
-    const dialogue = document.getElementById("dialogue");
-    const lookAroundWrap = document.getElementById("lookAroundWrap");
-    const lookAroundBtn = document.getElementById("lookAroundBtn");
+  windowEl.style.opacity = 1;
+  frame.style.opacity = 1;
 
-    const introText = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
+  await sleep(700);
+  logo.style.opacity = 1;
 
-    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+  await sleep(3000);
+  logo.style.opacity = 0;
 
-    function fadeInMusic(durationMs = 1800){
-      music.volume = 0;
-      const start = performance.now();
-      const step = (t) => {
-        const p = Math.min(1, (t - start) / durationMs);
-        music.volume = p;
-        if (p < 1) requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
-    }
+  await sleep(600);
+  dialogue.style.opacity = 1;
+  typewriter(introText, 38);
+});
 
-    let typing = false;
-    let typedAll = false;
-    let timer = null;
+dialogue.addEventListener("click", () => {
+  if (typing) {
+    typing = false;
+    if (timer) clearTimeout(timer);
+    dialogue.textContent = introText;
+    lookAroundWrap.classList.add("visible");
+  }
+});
 
-    function typewriter(text, cps = 38){
-      if (timer) clearTimeout(timer);
-      typing = true;
-      typedAll = false;
-      dialogue.textContent = "";
-      let i = 0;
-      const delay = Math.max(10, Math.floor(1000 / cps));
+lookAroundBtn.addEventListener("click", () => {
+  window.location.href = "start2.html";
+});
+</script>
 
-      const tick = () => {
-        if (!typing) return;
-        i += 1;
-        dialogue.textContent = text.slice(0, i);
-        if (i
+</body>
+</html>
