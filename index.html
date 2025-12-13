@@ -16,12 +16,17 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: black;
+  position: fixed;
+  inset: 0;
 }
+
+* { overscroll-behavior: none; }
 
 .app {
   position: fixed;
   inset: 0;
   background: black;
+  overflow: hidden;
 }
 
 .start-screen {
@@ -122,7 +127,7 @@ html, body {
   left: 50%;
   bottom: 200px;
   transform: translateX(-50%);
-  width: 900px;              /* was 960px */
+  width: 900px;
   font-family: "Silkscreen";
   font-size: 24px;
   line-height: 1.2;
@@ -200,6 +205,13 @@ html, body {
 </div>
 
 <script>
+/* HARD scroll lock (Safari + trackpads + keyboard) */
+window.addEventListener("wheel", e => e.preventDefault(), { passive: false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+window.addEventListener("keydown", e => {
+  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
+});
+
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
 const startButton = document.getElementById("startButton");
