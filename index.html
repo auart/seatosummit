@@ -3,339 +3,540 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sea to Summit, Wake Up Look Around</title>
+<title>Sea to Summit</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
-  html, body {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    background: #000;
-    overflow: hidden;
-  }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: black;
+  position: fixed;
+  inset: 0;
+}
 
-  /* full screen stage */
-  .app {
-    position: fixed;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    background: #000;
-  }
+* { overscroll-behavior: none; }
 
-  /* keeps your artwork crisp */
-  img {
-    image-rendering: pixelated;
-    -webkit-user-drag: none;
-    user-select: none;
-  }
+.app {
+  position: fixed;
+  inset: 0;
+  background: black;
+  overflow: hidden;
+}
 
-  /* scene container, change these if your art isn't 1200x675 */
-  .scene {
-    position: relative;
-    width: 1200px;
-    height: 675px;
-    overflow: hidden;
-  }
+.start-screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: black;
+  z-index: 100;
+  transition: opacity 700ms ease;
+}
+.start-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
 
-  /* the "camera" only affects the world layer, not UI */
-  .world {
-    position: absolute;
-    inset: 0;
-    transform: translate(0px, 0px);
-    will-change: transform, filter, opacity;
-  }
+.button {
+  position: relative;
+  cursor: pointer;
+}
 
-  .world img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
+.button img {
+  width: 420px;
+  image-rendering: pixelated;
+}
 
-  /* base look */
-  .base { opacity: 1; }
-  .water { opacity: 1; }
-  .palms { opacity: 1; }
+.button span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: "Press Start 2P";
+  font-size: 22px;
+  color: black;
+  pointer-events: none;
+}
 
-  /* optional loop anims you had, still here */
-  .water {
-    animation: waveShift 2.8s ease-in-out infinite;
-  }
-  @keyframes waveShift {
-    0%   { transform: translate(0px, 0px); }
-    50%  { transform: translate(7px, 1px); }
-    100% { transform: translate(0px, 0px); }
-  }
+.game-screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 700ms ease;
+}
+.game-screen.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
 
-  .palms {
-    animation: palmShift 5.5s ease-in-out infinite;
-  }
-  @keyframes palmShift {
-    0%   { transform: translate(0px, 0px); }
-    50%  { transform: translate(2px, -1px); }
-    100% { transform: translate(0px, 0px); }
-  }
+.stage-wrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  width: 1920px;
+  height: 1080px;
+}
 
-  /* groggy blur state (applied to .world) */
-  .groggy {
-    filter: blur(6px) saturate(0.9) brightness(1.05);
-    opacity: 0.92;
-  }
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+}
 
-  .clear {
-    filter: blur(0px) saturate(1) brightness(1);
-    opacity: 1;
-    transition: filter 1400ms ease, opacity 1400ms ease;
-  }
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
 
-  /* vignette overlay, also directional via JS */
-  .vignette {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.65;
-    transition: opacity 1200ms ease;
-    background: radial-gradient(circle at 50% 50%,
-      rgba(0,0,0,0) 38%,
-      rgba(0,0,0,0.22) 68%,
-      rgba(0,0,0,0.62) 100%);
-    mix-blend-mode: multiply;
-  }
+/* WORLD wrapper (moves) */
+.world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  z-index: 1;
+  will-change: transform, filter, opacity;
+  transform: translate3d(0px, 0px, 0px);
+}
 
-  .vignette.clear {
-    opacity: 0.18;
-  }
+/* waking up blur (applied to .world) */
+.scene-haze {
+  filter: blur(0px) saturate(1) brightness(1);
+  opacity: 1;
+  transition: filter 900ms ease, opacity 900ms ease;
+}
+.scene-haze.groggy {
+  filter: blur(5px) saturate(0.92) brightness(1.02);
+  opacity: 0.92;
+}
+.scene-haze.clear {
+  filter: blur(0px) saturate(1) brightness(1);
+  opacity: 1;
+}
 
-  /* directional edge darkening, subtle but noticeable (level 5) */
-  .edge {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 800ms ease;
-    mix-blend-mode: multiply;
-  }
+/* vignette stays fixed (does not move with world) */
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1200ms ease;
+  background: radial-gradient(circle at center,
+    rgba(0,0,0,0) 45%,
+    rgba(0,0,0,0.25) 80%,
+    rgba(0,0,0,0.55) 100%);
+}
+.vignette.groggy { opacity: 1; }
+.vignette.clear { opacity: 0.18; }
 
-  /* left/right shading masks, opacity controlled in JS */
-  .edge.left {
-    background: linear-gradient(90deg,
-      rgba(0,0,0,0.55) 0%,
-      rgba(0,0,0,0.18) 26%,
-      rgba(0,0,0,0.0) 55%);
-  }
+/* directional edge shading (fixed overlay, reacts to x movement) */
+.edge {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms linear;
+  mix-blend-mode: multiply;
+}
+.edge.left {
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.62) 0%,
+    rgba(0,0,0,0.18) 26%,
+    rgba(0,0,0,0.0) 55%);
+}
+.edge.right {
+  background: linear-gradient(270deg,
+    rgba(0,0,0,0.62) 0%,
+    rgba(0,0,0,0.18) 26%,
+    rgba(0,0,0,0.0) 55%);
+}
 
-  .edge.right {
-    background: linear-gradient(270deg,
-      rgba(0,0,0,0.55) 0%,
-      rgba(0,0,0,0.18) 26%,
-      rgba(0,0,0,0.0) 55%);
-  }
+.frame { z-index: 10; }
 
-  /* eyelids overlay */
-  .eyelids {
-    position: absolute;
-    inset: 0;
-    z-index: 50;
-    pointer-events: none;
-    overflow: hidden;
-    --pct: 0%;
-    --dur: 650ms;
-  }
+.title-layer {
+  position: absolute;
+  inset: 0;
+  image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 900ms ease;
+  z-index: 20;
+  pointer-events: none;
+}
+.title-layer.visible { opacity: 1; }
 
-  .eyelid {
-    position: absolute;
-    left: 0;
-    width: 100%;
-    height: 50%;
-    background: #000;
-    transition: transform var(--dur) cubic-bezier(0.33,0,0.2,1);
-  }
+.story {
+  position: absolute;
+  left: 50%;
+  bottom: 212px;
+  transform: translateX(-50%);
+  width: 900px;
+  font-family: "Silkscreen";
+  font-size: 24px;
+  line-height: 1.2;
+  color: black;
+  opacity: 0;
+  transition: opacity 600ms ease;
+  cursor: pointer;
+  z-index: 25;
+  padding-left: 50px;
+  padding-right: 50px;
+  box-sizing: border-box;
+  user-select: none;
+}
+.story.visible { opacity: 1; }
 
-  .eyelid.top {
-    top: 0;
-    transform: translateY(calc(-1 * var(--pct)));
-  }
+.choice {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%) scale(0.84);
+  opacity: 0;
+  transition: opacity 700ms ease;
+  z-index: 30;
+  text-decoration: none;
+}
+.choice.visible { opacity: 1; }
 
-  .eyelid.bottom {
-    bottom: 0;
-    transform: translateY(var(--pct));
-  }
+.eyelids {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  overflow: hidden;
+  --pct: 0%;
+  --dur: 650ms;
+}
 
-  .eyelids.closed { --pct: 0%; }
-  .eyelids.open1  { --pct: 52%; }
-  .eyelids.open2  { --pct: 100%; }
+.eyelid {
+  position: absolute;
+  width: 100%;
+  height: 50%;
+  background: black;
+  transition: transform var(--dur) cubic-bezier(0.33,0,0.2,1);
+}
 
-  /* make it fit any screen while preserving aspect */
-  .fit {
-    transform: scale(var(--s));
-    transform-origin: center center;
-  }
+.eyelid.top {
+  top: 0;
+  transform: translateY(calc(-1 * var(--pct)));
+}
+.eyelid.bottom {
+  bottom: 0;
+  transform: translateY(var(--pct));
+}
+
+.eyelids.closed { --pct: 0%; }
+.eyelids.open1 { --pct: 45%; }
+.eyelids.open2 { --pct: 100%; }
 </style>
 </head>
 
 <body>
 <div class="app">
-  <div class="scene fit" id="scene">
 
-    <!-- WORLD (moves + blurs) -->
-    <div class="world groggy" id="world">
-      <img src="island_base.png" class="base" alt="">
-      <img src="water_overlay.png" class="water" alt="">
-      <img src="palm_overlay.png" class="palms" alt="">
-    </div>
-
-    <!-- VIGNETTE + DIRECTIONAL EDGES -->
-    <div class="vignette" id="vignette"></div>
-    <div class="edge left" id="edgeLeft"></div>
-    <div class="edge right" id="edgeRight"></div>
-
-    <!-- EYELIDS -->
-    <div class="eyelids closed" id="eyelids">
-      <div class="eyelid top"></div>
-      <div class="eyelid bottom"></div>
-    </div>
-
+<div class="start-screen" id="startScreen">
+  <div class="button" id="startButton">
+    <img src="stsbutton.png" alt="">
+    <span>Begin</span>
   </div>
 </div>
 
+<div class="game-screen" id="gameScreen">
+  <div class="stage-wrapper" id="stageWrapper">
+    <div class="stage">
+
+      <!-- WORLD (moves + blurs) -->
+      <div class="world scene-haze groggy" id="world">
+        <img class="layer" id="sceneImg" src="starti.png" alt="">
+      </div>
+
+      <!-- fixed overlays -->
+      <div class="vignette groggy" id="vignette"></div>
+      <div class="edge left" id="edgeLeft"></div>
+      <div class="edge right" id="edgeRight"></div>
+
+      <img class="layer frame" src="stsframe3.png" alt="">
+      <img class="title-layer" id="title" src="stslogo2.png" alt="">
+
+      <div class="story" id="story"></div>
+
+      <a href="start2.html" class="choice" id="choice">
+        <div class="button">
+          <img src="stsbutton.png" alt="">
+          <span style="font-size:20px;">Look Around</span>
+        </div>
+      </a>
+
+      <div class="eyelids closed" id="eyelids">
+        <div class="eyelid top"></div>
+        <div class="eyelid bottom"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<audio id="music" src="starttheme.m4a" preload="auto"></audio>
+
+</div>
+
 <script>
-  /* lock scrolling */
-  window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
-  window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
-  window.addEventListener("keydown", e => {
-    if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
-  });
+window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
 
-  const scene = document.getElementById("scene");
-  const world = document.getElementById("world");
-  const vignette = document.getElementById("vignette");
-  const edgeLeft = document.getElementById("edgeLeft");
-  const edgeRight = document.getElementById("edgeRight");
-  const eyelids = document.getElementById("eyelids");
+const startScreen = document.getElementById("startScreen");
+const gameScreen = document.getElementById("gameScreen");
+const startButton = document.getElementById("startButton");
+const title = document.getElementById("title");
+const story = document.getElementById("story");
+const choice = document.getElementById("choice");
+const eyelids = document.getElementById("eyelids");
+const music = document.getElementById("music");
+const stageWrapper = document.getElementById("stageWrapper");
 
-  /* responsive scaling */
-  function fit() {
-    const w = 1200, h = 675;
-    const s = Math.min(window.innerWidth / w, window.innerHeight / h);
-    scene.style.setProperty("--s", s.toString());
-  }
-  window.addEventListener("resize", fit);
-  fit();
+const world = document.getElementById("world");
+const vignette = document.getElementById("vignette");
+const edgeLeft = document.getElementById("edgeLeft");
+const edgeRight = document.getElementById("edgeRight");
 
-  function setEyelids(state, dur) {
-    eyelids.style.setProperty("--dur", dur + "ms");
-    eyelids.classList.remove("closed","open1","open2");
-    eyelids.classList.add(state);
-  }
+const storyLines = [
+  "You wake up on a beach.",
+  "Warm sand, slow waves.",
+  "No memory of how you got here."
+];
 
-  /* PHASES (level 5, noticeable but tasteful)
-     1) groggy "look up" drift while blurry
-     2) settle to center as it clears
-     3) gentle left-right scan after clear
-     + directional vignette edges tied to x movement
-  */
+let lineIndex = 0;
+let charIndex = 0;
+let typing = null;
+let isTyping = false;
+let storyActive = false;
 
-  let raf = null;
-  let t0 = null;
+function scaleStage() {
+  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+}
+window.addEventListener("resize", scaleStage);
+scaleStage();
 
-  // movement state
-  let x = 0, y = 0;
-  let targetX = 0, targetY = 0;
+function fadeInMusic() {
+  music.volume = 0;
+  music.play();
+  let v = 0;
+  const fade = setInterval(() => {
+    v += 0.025;
+    music.volume = Math.min(v, 0.9);
+    if (v >= 0.9) clearInterval(fade);
+  }, 120);
+}
 
-  // scan params
-  let scanning = false;
-  let scanStart = 0;
+function setEyelids(state, dur) {
+  eyelids.style.setProperty("--dur", dur + "ms");
+  eyelids.classList.remove("closed","open1","open2");
+  eyelids.classList.add(state);
+}
 
-  function applyWorld() {
-    world.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px)`;
-
-    // directional edge shading based on x, stronger when scanning (level 5)
-    const strength = Math.min(Math.abs(x) / 14, 1); // normalize to ~14px
-    const edgeOpacity = scanning ? (0.22 + strength * 0.28) : (0.12 + strength * 0.18);
-
-    if (x > 0.5) {
-      edgeRight.style.opacity = edgeOpacity.toFixed(3);
-      edgeLeft.style.opacity = "0";
-    } else if (x < -0.5) {
-      edgeLeft.style.opacity = edgeOpacity.toFixed(3);
-      edgeRight.style.opacity = "0";
-    } else {
-      edgeLeft.style.opacity = "0";
-      edgeRight.style.opacity = "0";
-    }
-  }
-
-  function lerp(a, b, t) { return a + (b - a) * t; }
-
-  function animate(now) {
-    if (!t0) t0 = now;
-    const t = now - t0;
-
-    // Phase 1: groggy lift (0ms -> 2600ms)
-    // move up (negative y) and a tiny drift right, no looping
-    if (t < 2600) {
-      const p = t / 2600;
-      // ease out
-      const e = 1 - Math.pow(1 - p, 3);
-      targetY = lerp(18, -28, e);  // starts slightly down, lifts up
-      targetX = lerp(-6, 10, e);   // tiny right drift
-    }
-
-    // Phase 2: settle to center (2600ms -> 4700ms)
-    if (t >= 2600 && t < 4700) {
-      const p = (t - 2600) / 2100;
-      const e = 1 - Math.pow(1 - p, 3);
-      targetX = lerp(targetX, 0, e);
-      targetY = lerp(targetY, 0, e);
-    }
-
-    // Phase 3: horizon scan (starts at 4700ms)
-    if (t >= 4700) {
-      if (!scanning) {
-        scanning = true;
-        scanStart = now;
-      }
-      const st = (now - scanStart) / 1000; // seconds
-      // big slow scan: 10px amplitude, 10s period
-      const amp = 10;
-      const period = 10;
-      targetX = Math.sin((st * 2 * Math.PI) / period) * amp;
-      // tiny vertical "breath"
-      targetY = Math.sin((st * 2 * Math.PI) / (period * 1.6)) * 2;
-    }
-
-    // smooth follow (prevents jitter)
-    x = lerp(x, targetX, 0.06);
-    y = lerp(y, targetY, 0.06);
-
-    applyWorld();
-    raf = requestAnimationFrame(animate);
-  }
-
-  // start in groggy blur + strong vignette
-  vignette.classList.remove("clear");
-  world.classList.add("groggy");
-
-  // TWO BLINKS, quicker
-  // partial open -> close -> partial open -> close -> full open
-  let tt = 350;
-  setTimeout(() => setEyelids("open1", 600), tt); tt += 760;
-  setTimeout(() => setEyelids("closed", 420), tt); tt += 620;
-  setTimeout(() => setEyelids("open1", 560), tt); tt += 720;
-  setTimeout(() => setEyelids("closed", 420), tt); tt += 600;
-  setTimeout(() => setEyelids("open2", 920), tt);
-
-  // kick off motion immediately (during blur)
-  raf = requestAnimationFrame(animate);
-
-  // clear blur gradually shortly after final open begins
-  setTimeout(() => {
+function setGroggy(on) {
+  if (on) {
+    world.classList.add("groggy");
+    world.classList.remove("clear");
+    vignette.classList.add("groggy");
+    vignette.classList.remove("clear");
+  } else {
     world.classList.remove("groggy");
     world.classList.add("clear");
+    vignette.classList.remove("groggy");
     vignette.classList.add("clear");
-  }, tt + 180);
+  }
+}
 
+function startTypingLine() {
+  clearInterval(typing);
+  isTyping = true;
+  charIndex = 0;
+  story.textContent = "";
+  const current = storyLines[lineIndex];
+  typing = setInterval(() => {
+    charIndex++;
+    story.textContent = current.slice(0, charIndex);
+    if (charIndex >= current.length) {
+      clearInterval(typing);
+      isTyping = false;
+      if (lineIndex === storyLines.length - 1) {
+        choice.classList.add("visible");
+      }
+    }
+  }, 30);
+}
+
+function advanceStory() {
+  if (!storyActive) return;
+  if (isTyping) {
+    story.textContent = storyLines[lineIndex];
+    isTyping = false;
+    if (lineIndex === storyLines.length - 1) choice.classList.add("visible");
+    return;
+  }
+  if (lineIndex < storyLines.length - 1) {
+    lineIndex++;
+    startTypingLine();
+  }
+}
+
+document.addEventListener("click", e => {
+  if (e.target.closest("#startButton")) return;
+  if (e.target.closest("#choice")) return;
+  advanceStory();
+});
+
+/* LOOK AROUND MOTION (level 5) */
+let raf = null;
+let motionStart = 0;
+
+// position + targets
+let x = 0, y = 0;
+let tx = 0, ty = 0;
+
+// phases
+let scanning = false;
+let scanStart = 0;
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function updateEdges() {
+  // stronger edges when moving (tasteful but noticeable)
+  const strength = Math.min(Math.abs(x) / 12, 1);
+  const base = vignette.classList.contains("clear") ? 0.10 : 0.18;
+  const edgeOpacity = base + strength * 0.28;
+
+  if (x > 0.6) {
+    edgeRight.style.opacity = edgeOpacity.toFixed(3);
+    edgeLeft.style.opacity = "0";
+  } else if (x < -0.6) {
+    edgeLeft.style.opacity = edgeOpacity.toFixed(3);
+    edgeRight.style.opacity = "0";
+  } else {
+    edgeLeft.style.opacity = "0";
+    edgeRight.style.opacity = "0";
+  }
+}
+
+function applyWorld() {
+  world.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
+  updateEdges();
+}
+
+function motionLoop(now) {
+  if (!motionStart) motionStart = now;
+  const t = now - motionStart;
+
+  // Phase 1: "looking up / sitting up" during groggy (0 -> 2600ms)
+  if (t < 2600) {
+    const p = t / 2600;
+    const e = 1 - Math.pow(1 - p, 3); // ease out
+    tx = lerp(-8, 14, e);     // tiny sideways drift
+    ty = lerp(18, -30, e);    // lift up
+  }
+
+  // Phase 2: settle to center as vision clears (2600 -> 4600ms)
+  if (t >= 2600 && t < 4600) {
+    const p = (t - 2600) / 2000;
+    const e = 1 - Math.pow(1 - p, 3);
+    tx = lerp(tx, 0, e);
+    ty = lerp(ty, 0, e);
+  }
+
+  // Phase 3: gentle horizon scan AFTER clear (starts 4600ms)
+  if (t >= 4600) {
+    if (!scanning) {
+      scanning = true;
+      scanStart = now;
+    }
+    const s = (now - scanStart) / 1000; // seconds
+    const ampX = 12;     // level 5 noticeable
+    const period = 9.5;  // slow scan
+    tx = Math.sin((s * 2 * Math.PI) / period) * ampX;
+    ty = Math.sin((s * 2 * Math.PI) / (period * 1.8)) * 2.5; // tiny vertical breath
+  }
+
+  // smooth follow
+  x = lerp(x, tx, 0.06);
+  y = lerp(y, ty, 0.06);
+
+  applyWorld();
+  raf = requestAnimationFrame(motionLoop);
+}
+
+startButton.addEventListener("click", () => {
+  startScreen.classList.add("hidden");
+  gameScreen.classList.add("visible");
+  fadeInMusic();
+
+  // Reset story state
+  lineIndex = 0;
+  charIndex = 0;
+  isTyping = false;
+  storyActive = false;
+  story.textContent = "";
+  story.classList.remove("visible");
+  choice.classList.remove("visible");
+
+  // Reset motion + visuals
+  if (raf) cancelAnimationFrame(raf);
+  raf = null;
+  motionStart = 0;
+  scanning = false;
+  scanStart = 0;
+  x = 0; y = 0; tx = 0; ty = 0;
+  edgeLeft.style.opacity = "0";
+  edgeRight.style.opacity = "0";
+
+  setGroggy(true);
+
+  // Start motion immediately (during blur)
+  raf = requestAnimationFrame(motionLoop);
+
+  // Blink sequence (your current one)
+  let t = 250;
+  setTimeout(() => setEyelids("open1", 750), t); t += 950;
+  setTimeout(() => setEyelids("closed", 520), t); t += 750;
+  setTimeout(() => setEyelids("open1", 700), t); t += 900;
+  setTimeout(() => setEyelids("closed", 500), t); t += 700;
+  setTimeout(() => setEyelids("open2", 1200), t);
+
+  // Clear blur shortly after final open begins
+  setTimeout(() => setGroggy(false), t + 250);
+
+  const fullyOpenAt = t + 1200;
+  const titleIn = fullyOpenAt + 4000;
+  const titleOut = titleIn + 4000;
+
+  setTimeout(() => title.classList.add("visible"), titleIn);
+  setTimeout(() => title.classList.remove("visible"), titleOut);
+
+  setTimeout(() => {
+    story.classList.add("visible");
+    storyActive = true;
+    startTypingLine();
+  }, titleOut + 700);
+});
 </script>
 </body>
 </html>
