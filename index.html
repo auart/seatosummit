@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
+/* HARD no-scroll */
 html, body {
   margin: 0;
   width: 100%;
@@ -17,11 +18,16 @@ html, body {
   overflow: hidden;
   background: black;
 }
+body { position: fixed; inset: 0; }
+
+/* also prevents trackpad bounce scroll on mac */
+* { overscroll-behavior: none; }
 
 .app {
   position: fixed;
   inset: 0;
   background: black;
+  overflow: hidden;
 }
 
 .start-screen {
@@ -116,15 +122,15 @@ html, body {
 }
 .title-layer.visible { opacity: 1; }
 
-/* Story text: shifted right another 10px, slightly smaller */
+/* Story text: squeezed a bit more + font a couple points smaller */
 .story {
   position: absolute;
   left: calc(50% + 20px);
   bottom: 200px;
   transform: translateX(-50%);
-  width: 960px;
+  width: 920px;
   font-family: "Silkscreen";
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.2;
   color: black;
   opacity: 0;
@@ -137,7 +143,6 @@ html, body {
 }
 .story.visible { opacity: 1; }
 
-/* Look Around button: same scale, slightly larger text */
 .choice {
   position: absolute;
   left: 50%;
@@ -201,6 +206,10 @@ html, body {
 </div>
 
 <script>
+/* extra no-scroll lock for wheel/trackpad */
+window.addEventListener("wheel", (e) => e.preventDefault(), { passive: false });
+window.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
 const startButton = document.getElementById("startButton");
