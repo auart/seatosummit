@@ -10,24 +10,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: #000;
-    }
-    body {
-      overflow: hidden;
-      user-select: none;
+    html, body { height: 100%; margin: 0; background: #000; }
+    body { overflow: hidden; user-select: none; }
+
+    :root{
+      /* Your measured values */
+      --win-x: 772.3733px;
+      --win-y: 417.491px;
+      --win-w: 828.2474px;
+      --win-h: 546.9492px;
+
+      --txt-x: 773.1405px;
+      --txt-y: 798.7486px;
+      --txt-w: 732.9919px;
+      --txt-h: 76.155px;
     }
 
-    #app {
-      position: fixed;
-      inset: 0;
-      background: #000;
-    }
+    #app { position: fixed; inset: 0; background: #000; }
 
-    /* Start screen */
-    #startScreen {
+    #startScreen{
       position: absolute;
       inset: 0;
       display: grid;
@@ -37,13 +38,12 @@
       transition: opacity 600ms ease;
       z-index: 50;
     }
-    #startScreen.hidden {
+    #startScreen.hidden{
       opacity: 0;
       pointer-events: none;
     }
 
-    /* Stage wrapper fills screen */
-    #stageWrap {
+    #stageWrap{
       position: fixed;
       inset: 0;
       background: #000;
@@ -52,13 +52,12 @@
       pointer-events: none;
       z-index: 10;
     }
-    #stageWrap.visible {
+    #stageWrap.visible{
       opacity: 1;
       pointer-events: auto;
     }
 
-    /* 1920x1080 stage, centered by transform in JS */
-    #stage {
+    #stage{
       width: 1920px;
       height: 1080px;
       position: absolute;
@@ -67,109 +66,78 @@
       transform-origin: center center;
     }
 
-    /* Layers */
-    #sceneLayer, #frameLayer, #uiLayer {
+    #frameImage{
       position: absolute;
       inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      image-rendering: pixelated;
+      opacity: 0;
+      transition: opacity 900ms ease;
     }
+    #frameImage.visible{ opacity: 1; }
 
-    #sceneImage {
+    /* Clipped window where scene lives */
+    #window{
+      position: absolute;
+      left: var(--win-x);
+      top: var(--win-y);
+      width: var(--win-w);
+      height: var(--win-h);
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 900ms ease;
+    }
+    #window.visible{ opacity: 1; }
+
+    #sceneImage{
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       image-rendering: pixelated;
-      opacity: 0;
-      transition: opacity 900ms ease;
     }
-    #sceneImage.visible { opacity: 1; }
 
-    /* Water overlay animation */
-    #waterOverlay {
+    #waterOverlay{
       position: absolute;
       inset: 0;
-      width: 100%;
+      width: 110%;
       height: 100%;
+      opacity: 0.75;
       pointer-events: none;
-      opacity: 0;
-      transition: opacity 900ms ease;
       image-rendering: pixelated;
       animation: waterDrift 6s linear infinite;
       will-change: transform;
     }
-    #waterOverlay.visible { opacity: 0.75; }
-
-    @keyframes waterDrift {
-      0%   { transform: translateX(-16px); }
-      50%  { transform: translateX(24px); }
-      100% { transform: translateX(-16px); }
+    @keyframes waterDrift{
+      0%   { transform: translateX(-14px); }
+      50%  { transform: translateX(22px); }
+      100% { transform: translateX(-14px); }
     }
 
-    #frameImage {
+    /* Logo centered inside the frame opening */
+    #logo{
       position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      image-rendering: pixelated;
-      opacity: 0;
-      transition: opacity 900ms ease;
-    }
-    #frameImage.visible { opacity: 1; }
-
-    /* Logo, centered */
-    #logo {
-      position: absolute;
-      left: 50%;
-      top: 310px;
-      transform: translateX(-50%);
-      width: 980px;
+      left: calc(var(--win-x) + (var(--win-w) / 2));
+      top: calc(var(--win-y) + (var(--win-h) / 2));
+      transform: translate(-50%, -50%);
+      width: min(980px, calc(var(--win-w) * 0.92));
       image-rendering: pixelated;
       opacity: 0;
       transition: opacity 900ms ease;
       pointer-events: none;
     }
-    #logo.visible { opacity: 1; }
+    #logo.visible{ opacity: 1; }
 
-    /* Buttons */
-    .btn {
-      position: relative;
-      border: 0;
-      padding: 0;
-      background: transparent;
-      cursor: pointer;
-      outline: none;
-    }
-    .btn img {
-      display: block;
-      image-rendering: pixelated;
-    }
-    .btn span {
+    /* Dialogue inside the light box */
+    #dialogue{
       position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 28px;
-      color: #2b1607;
-      pointer-events: none;
-      text-align: center;
-      padding: 0 18px;
-      line-height: 1.2;
-    }
-
-    /* Begin button centered on black */
-    #beginBtn { width: 520px; height: 150px; }
-    #beginBtn img { width: 520px; height: 150px; }
-
-    /* Dialogue inside the frame text area */
-    #dialogue {
-      position: absolute;
-      left: 460px;
-      top: 745px;
-      width: 1000px;
-      height: 150px;
+      left: var(--txt-x);
+      top: var(--txt-y);
+      width: var(--txt-w);
+      height: var(--txt-h);
       font-family: "Silkscreen", system-ui, sans-serif;
       font-size: 22px;
       line-height: 1.45;
@@ -177,14 +145,16 @@
       opacity: 0;
       transition: opacity 700ms ease;
       pointer-events: auto;
+      overflow: hidden;
+      white-space: normal;
     }
-    #dialogue.visible { opacity: 1; }
+    #dialogue.visible{ opacity: 1; }
 
-    #dialogueHint {
+    #dialogueHint{
       position: absolute;
-      left: 460px;
-      top: 910px;
-      width: 1000px;
+      left: var(--txt-x);
+      top: calc(var(--txt-y) + var(--txt-h) + 10px);
+      width: var(--txt-w);
       font-family: "Silkscreen", system-ui, sans-serif;
       font-size: 16px;
       color: rgba(43,22,7,0.55);
@@ -192,10 +162,37 @@
       transition: opacity 700ms ease;
       pointer-events: none;
     }
-    #dialogueHint.visible { opacity: 1; }
+    #dialogueHint.visible{ opacity: 1; }
 
-    /* Choice button UNDER the frame */
-    #choiceBtnWrap {
+    /* Buttons */
+    .btn{
+      position: relative;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      cursor: pointer;
+      outline: none;
+    }
+    .btn img{ display: block; image-rendering: pixelated; }
+    .btn span{
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-family: "Press Start 2P", system-ui, sans-serif;
+      color: #2b1607;
+      pointer-events: none;
+      text-align: center;
+      padding: 0 18px;
+      line-height: 1.2;
+    }
+
+    #beginBtn{ width: 520px; height: 150px; }
+    #beginBtn img{ width: 520px; height: 150px; }
+    #beginBtn span{ font-size: 28px; }
+
+    /* Choice button under the frame */
+    #choiceBtnWrap{
       position: absolute;
       left: 50%;
       top: 1080px;
@@ -206,14 +203,13 @@
       pointer-events: none;
       z-index: 100;
     }
-    #choiceBtnWrap.visible {
+    #choiceBtnWrap.visible{
       opacity: 1;
       pointer-events: auto;
     }
-
-    #choiceBtn { width: 620px; height: 150px; }
-    #choiceBtn img { width: 620px; height: 150px; }
-    #choiceBtn span { font-size: 22px; }
+    #choiceBtn{ width: 620px; height: 150px; }
+    #choiceBtn img{ width: 620px; height: 150px; }
+    #choiceBtn span{ font-size: 22px; }
   </style>
 </head>
 
@@ -229,35 +225,28 @@
 
     <div id="stageWrap">
       <div id="stage">
-
-        <div id="sceneLayer">
+        <div id="window">
           <img id="sceneImage" src="island_base.png" alt="">
           <img id="waterOverlay" src="water_overlay.png" alt="">
         </div>
 
-        <div id="frameLayer">
-          <img id="frameImage" src="stsframe.png" alt="">
+        <img id="frameImage" src="stsframe.png" alt="">
+
+        <img id="logo" src="stslogo.png" alt="Sea to Summit">
+
+        <div id="dialogue"></div>
+        <div id="dialogueHint">click to finish text</div>
+
+        <div id="choiceBtnWrap">
+          <button id="choiceBtn" class="btn" type="button" aria-label="Look Around">
+            <img src="stsbutton.png" alt="">
+            <span>Look Around</span>
+          </button>
         </div>
-
-        <div id="uiLayer">
-          <img id="logo" src="stslogo.png" alt="Sea to Summit">
-
-          <div id="dialogue"></div>
-          <div id="dialogueHint">click to finish text</div>
-
-          <div id="choiceBtnWrap">
-            <button id="choiceBtn" class="btn" type="button" aria-label="Look Around">
-              <img src="stsbutton.png" alt="">
-              <span>Look Around</span>
-            </button>
-          </div>
-        </div>
-
       </div>
     </div>
 
     <audio id="music" src="starttheme.m4a" preload="auto"></audio>
-
   </div>
 
   <script>
@@ -266,7 +255,7 @@
 
     const stage = document.getElementById("stage");
 
-    function scaleStage() {
+    function scaleStage(){
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const s = Math.min(vw / BASE_W, vh / BASE_H);
@@ -275,28 +264,47 @@
     window.addEventListener("resize", scaleStage);
     scaleStage();
 
+    /* If Y feels flipped, set this to true */
+    const FLIP_Y_FROM_BOTTOM = false;
+
+    function maybeFlipY(){
+      if (!FLIP_Y_FROM_BOTTOM) return;
+
+      const root = document.documentElement;
+      const cs = getComputedStyle(root);
+
+      const winY = parseFloat(cs.getPropertyValue("--win-y"));
+      const winH = parseFloat(cs.getPropertyValue("--win-h"));
+      const txtY = parseFloat(cs.getPropertyValue("--txt-y"));
+      const txtH = parseFloat(cs.getPropertyValue("--txt-h"));
+
+      const newWinY = (BASE_H - winY - winH);
+      const newTxtY = (BASE_H - txtY - txtH);
+
+      root.style.setProperty("--win-y", newWinY + "px");
+      root.style.setProperty("--txt-y", newTxtY + "px");
+    }
+    maybeFlipY();
+
     const startScreen = document.getElementById("startScreen");
     const stageWrap = document.getElementById("stageWrap");
-
     const beginBtn = document.getElementById("beginBtn");
-    const music = document.getElementById("music");
 
-    const sceneImage = document.getElementById("sceneImage");
-    const waterOverlay = document.getElementById("waterOverlay");
+    const music = document.getElementById("music");
+    const windowClip = document.getElementById("window");
     const frameImage = document.getElementById("frameImage");
     const logo = document.getElementById("logo");
 
     const dialogue = document.getElementById("dialogue");
     const dialogueHint = document.getElementById("dialogueHint");
-
     const choiceBtnWrap = document.getElementById("choiceBtnWrap");
     const choiceBtn = document.getElementById("choiceBtn");
 
     const introText = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
 
-    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-    function fadeInMusic(durationMs = 1800, targetVol = 1.0) {
+    function fadeInMusic(durationMs = 1800, targetVol = 1.0){
       music.volume = 0;
       const start = performance.now();
       const step = (t) => {
@@ -311,12 +319,12 @@
     let typedAll = false;
     let typeTimer = null;
 
-    function clearTyping() {
+    function clearTyping(){
       if (typeTimer) { clearTimeout(typeTimer); typeTimer = null; }
       typing = false;
     }
 
-    function typewriter(text, cps = 38) {
+    function typewriter(text, cps = 38){
       clearTyping();
       typing = true;
       typedAll = false;
@@ -340,7 +348,7 @@
       tick();
     }
 
-    function finishTypingInstant() {
+    function finishTypingInstant(){
       if (!typing) return;
       clearTyping();
       dialogue.textContent = introText;
@@ -357,10 +365,9 @@
       stageWrap.classList.add("visible");
 
       await sleep(150);
-      sceneImage.classList.add("visible");
-      waterOverlay.classList.add("visible");
+      windowClip.classList.add("visible");
 
-      await sleep(250);
+      await sleep(150);
       frameImage.classList.add("visible");
 
       await sleep(600);
@@ -369,7 +376,7 @@
       await sleep(3000);
       logo.classList.remove("visible");
 
-      await sleep(700);
+      await sleep(650);
       dialogue.classList.add("visible");
       dialogueHint.classList.add("visible");
       typewriter(introText, 38);
