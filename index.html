@@ -29,7 +29,6 @@ html, body {
   overflow: hidden;
 }
 
-/* START SCREEN */
 .start-screen {
   position: absolute;
   inset: 0;
@@ -65,7 +64,6 @@ html, body {
   pointer-events: none;
 }
 
-/* GAME SCREEN */
 .game-screen {
   position: absolute;
   inset: 0;
@@ -80,7 +78,6 @@ html, body {
   pointer-events: auto;
 }
 
-/* STAGE */
 .stage-wrapper {
   position: absolute;
   left: 50%;
@@ -110,7 +107,6 @@ html, body {
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* TITLE */
 .title-layer {
   position: absolute;
   left: 0;
@@ -125,7 +121,6 @@ html, body {
 }
 .title-layer.visible { opacity: 1; }
 
-/* STORY */
 .story {
   position: absolute;
   left: 50%;
@@ -139,14 +134,13 @@ html, body {
   opacity: 0;
   transition: opacity 600ms ease;
   cursor: pointer;
-  z-index: 15;
+  z-index: 25;
   padding-left: 50px;
   padding-right: 50px;
   box-sizing: border-box;
 }
 .story.visible { opacity: 1; }
 
-/* BUTTON */
 .choice {
   position: absolute;
   left: 50%;
@@ -160,7 +154,7 @@ html, body {
 }
 .choice.visible { opacity: 1; }
 
-/* EYELIDS (slow, tired) */
+/* Eyelids (slow tired) */
 .eyelids {
   position: absolute;
   inset: 0;
@@ -259,7 +253,7 @@ const stageWrapper = document.getElementById("stageWrapper");
 
 const text = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
 let index = 0;
-let typing;
+let typing = null;
 
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
@@ -285,30 +279,60 @@ function setEyelids(state, dur) {
   eyelids.classList.add(state);
 }
 
+function typeText() {
+  clearInterval(typing);
+  index = 0;
+  story.textContent = "";
+  typing = setInterval(() => {
+    index++;
+    story.textContent = text.slice(0, index);
+    if (index >= text.length) {
+      clearInterval(typing);
+      choice.classList.add("visible");
+    }
+  }, 30);
+}
+
+story.addEventListener("click", () => {
+  if (index < text.length) {
+    clearInterval(typing);
+    story.textContent = text;
+    choice.classList.add("visible");
+  }
+});
+
 startButton.addEventListener("click", () => {
   startScreen.classList.add("hidden");
   gameScreen.classList.add("visible");
+
   fadeInMusic();
 
+  // slow tired blink sequence
   let t = 400;
 
-  setTimeout(() => setEyelids("open1", 1200), t);          t += 1600;
-  setTimeout(() => setEyelids("closed", 900), t);          t += 1400;
-  setTimeout(() => setEyelids("open2", 1400), t);          t += 1800;
-  setTimeout(() => setEyelids("closed", 1000), t);         t += 1600;
-  setTimeout(() => setEyelids("open3", 2200), t);
+  setTimeout(() => setEyelids("open1", 1200), t);  t += 1600; // open slow + linger
+  setTimeout(() => setEyelids("closed", 900), t);  t += 1400; // close slow + linger
+  setTimeout(() => setEyelids("open2", 1400), t);  t += 1800; // open deeper + linger
+  setTimeout(() => setEyelids("closed", 1000), t); t += 1600; // close slow + linger
+  setTimeout(() => setEyelids("open3", 2200), t);              // full open slow
 
   const fullyOpenAt = t + 2200;
+
+  // Your timing request:
+  // show picture for 4 seconds, then title for 4 seconds, then continue like normal.
   const pictureHold = 4000;
   const titleHold = 4000;
 
-  setTimeout(() => title.classList.add("visible"), fullyOpenAt + pictureHold);
-  setTimeout(() => title.classList.remove("visible"), fullyOpenAt + pictureHold + titleHold);
+  const titleInAt = fullyOpenAt + pictureHold;
+  const titleOutAt = titleInAt + titleHold;
+
+  setTimeout(() => title.classList.add("visible"), titleInAt);
+  setTimeout(() => title.classList.remove("visible"), titleOutAt);
 
   setTimeout(() => {
     story.classList.add("visible");
     typeText();
-  }, fullyOpenAt + pictureHold + titleHold + 800);
+  }, titleOutAt + 700);
 });
 </script>
 </body>
