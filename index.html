@@ -1,33 +1,48 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Sea to Summit</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    html, body {
-      margin: 0;
-      background: black;
-      height: 100%;
-      overflow: hidden;
+    html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
+    body { user-select: none; }
+
+    #startScreen{
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: #000;
+      z-index: 50;
     }
 
-    #stage {
+    #stage{
       width: 1920px;
       height: 1080px;
       position: absolute;
       left: 50%;
       top: 50%;
-      transform-origin: center;
+      transform-origin: center center;
     }
 
-    /* FRAME WINDOW */
-    #window {
+    #frame{
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      image-rendering: pixelated;
+      opacity: 0;
+      transition: opacity 900ms ease;
+    }
+
+    #window{
       position: absolute;
       left: 772.3733px;
       top: 417.491px;
@@ -35,198 +50,190 @@
       height: 546.9492px;
       overflow: hidden;
       opacity: 0;
-      transition: opacity 1s ease;
+      transition: opacity 900ms ease;
     }
 
-    #sceneImage {
+    #sceneImage{
       position: absolute;
-      left: 0;
-      top: 0;
+      left: -772.3733px;
+      top: -417.491px;
+      width: 1920px;
+      height: 1080px;
       image-rendering: pixelated;
     }
 
-    #waterOverlay {
+    #waterOverlay{
       position: absolute;
-      left: 0;
-      top: 0;
+      left: -772.3733px;
+      top: -417.491px;
+      width: 1920px;
+      height: 1080px;
       opacity: 0.75;
+      pointer-events: none;
       image-rendering: pixelated;
       animation: waterDrift 6s linear infinite;
+      will-change: transform;
     }
 
-    @keyframes waterDrift {
+    @keyframes waterDrift{
       0% { transform: translateX(-14px); }
       50% { transform: translateX(22px); }
       100% { transform: translateX(-14px); }
     }
 
-    #frame {
+    #logo{
       position: absolute;
-      inset: 0;
-      image-rendering: pixelated;
-      opacity: 0;
-      transition: opacity 1s ease;
-      pointer-events: none;
-    }
-
-    #logo {
-      position: absolute;
-      left: calc(772.3733px + 414.1237px);
-      top: calc(417.491px + 273.4746px);
+      left: calc(772.3733px + 828.2474px / 2);
+      top: calc(417.491px + 546.9492px / 2);
       transform: translate(-50%, -50%);
+      width: 740px;
       image-rendering: pixelated;
       opacity: 0;
-      transition: opacity 1s ease;
+      transition: opacity 900ms ease;
       pointer-events: none;
     }
 
-    #dialogue {
+    #dialogue{
       position: absolute;
       left: 773.1405px;
       top: 798.7486px;
       width: 732.9919px;
       height: 76.155px;
-      font-family: Silkscreen, monospace;
+      font-family: "Silkscreen", system-ui, sans-serif;
       font-size: 22px;
+      line-height: 1.45;
       color: #2b1607;
       opacity: 0;
+      transition: opacity 700ms ease;
       cursor: pointer;
+      overflow: hidden;
     }
 
-    #startScreen {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: black;
-      z-index: 10;
-    }
-
-    .btn {
-      background: none;
-      border: none;
+    .btn{
+      background: transparent;
+      border: 0;
+      padding: 0;
       position: relative;
       cursor: pointer;
     }
-
-    .btn img {
-      image-rendering: pixelated;
-    }
-
-    .btn span {
+    .btn img{ display: block; image-rendering: pixelated; }
+    .btn span{
       position: absolute;
       inset: 0;
       display: grid;
       place-items: center;
-      font-family: "Press Start 2P";
+      font-family: "Press Start 2P", system-ui, sans-serif;
       color: #2b1607;
+      text-align: center;
+      pointer-events: none;
     }
 
-    #lookAround {
+    #beginBtn{ width: 520px; height: 150px; }
+    #beginBtn img{ width: 520px; height: 150px; }
+    #beginBtn span{ font-size: 28px; }
+
+    #lookAroundWrap{
       position: absolute;
       left: 50%;
       top: 1080px;
       transform: translateX(-50%);
+      margin-top: 24px;
       opacity: 0;
+      transition: opacity 700ms ease;
+      pointer-events: none;
+      z-index: 100;
     }
+    #lookAroundWrap.visible{
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #lookAroundBtn{ width: 620px; height: 150px; }
+    #lookAroundBtn img{ width: 620px; height: 150px; }
+    #lookAroundBtn span{ font-size: 22px; }
   </style>
 </head>
 
 <body>
-
-<div id="startScreen">
-  <button class="btn" id="beginBtn">
-    <img src="stsbutton.png">
-    <span>Begin</span>
-  </button>
-</div>
-
-<div id="stage">
-  <div id="window">
-    <img id="sceneImage" src="island_base.png">
-    <img id="waterOverlay" src="water_overlay.png">
-  </div>
-
-  <img id="frame" src="stsframe.png">
-  <img id="logo" src="stslogo.png">
-
-  <div id="dialogue"></div>
-
-  <div id="lookAround">
-    <button class="btn" onclick="location.href='start2.html'">
-      <img src="stsbutton.png">
-      <span>Look Around</span>
+  <div id="startScreen">
+    <button id="beginBtn" class="btn" type="button">
+      <img src="stsbutton.png" alt="">
+      <span>Begin</span>
     </button>
   </div>
-</div>
 
-<audio id="music" src="starttheme.m4a"></audio>
+  <div id="stage">
+    <div id="window">
+      <img id="sceneImage" src="island_base.png" alt="">
+      <img id="waterOverlay" src="water_overlay.png" alt="">
+    </div>
 
-<script>
-  const BASE_W = 1920;
-  const BASE_H = 1080;
-  const stage = document.getElementById("stage");
+    <img id="frame" src="stsframe.png" alt="">
+    <img id="logo" src="stslogo.png" alt="Sea to Summit">
+    <div id="dialogue"></div>
 
-  function scaleStage() {
-    const s = Math.min(window.innerWidth / BASE_W, window.innerHeight / BASE_H);
-    stage.style.transform = `translate(-50%, -50%) scale(${s})`;
-  }
-  window.addEventListener("resize", scaleStage);
-  scaleStage();
+    <div id="lookAroundWrap">
+      <button id="lookAroundBtn" class="btn" type="button">
+        <img src="stsbutton.png" alt="">
+        <span>Look Around</span>
+      </button>
+    </div>
+  </div>
 
-  const introText = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
-  const dialogue = document.getElementById("dialogue");
-  const lookAround = document.getElementById("lookAround");
+  <audio id="music" src="starttheme.m4a" preload="auto"></audio>
 
-  let i = 0;
-  let typing = true;
+  <script>
+    const BASE_W = 1920;
+    const BASE_H = 1080;
 
-  function typeText() {
-    if (!typing) return;
-    i++;
-    dialogue.textContent = introText.slice(0, i);
-    if (i < introText.length) {
-      setTimeout(typeText, 30);
-    } else {
-      lookAround.style.opacity = 1;
+    const stage = document.getElementById("stage");
+    function scaleStage(){
+      const s = Math.min(window.innerWidth / BASE_W, window.innerHeight / BASE_H);
+      stage.style.transform = `translate(-50%, -50%) scale(${s})`;
     }
-  }
+    window.addEventListener("resize", scaleStage);
+    scaleStage();
 
-  document.getElementById("beginBtn").onclick = async () => {
-    document.getElementById("startScreen").style.display = "none";
-
+    const beginBtn = document.getElementById("beginBtn");
+    const startScreen = document.getElementById("startScreen");
     const music = document.getElementById("music");
-    music.volume = 0;
-    await music.play();
 
-    let v = 0;
-    const fade = setInterval(() => {
-      v += 0.02;
-      music.volume = v;
-      if (v >= 1) clearInterval(fade);
-    }, 50);
+    const windowEl = document.getElementById("window");
+    const frame = document.getElementById("frame");
+    const logo = document.getElementById("logo");
 
-    document.getElementById("window").style.opacity = 1;
-    document.getElementById("frame").style.opacity = 1;
+    const dialogue = document.getElementById("dialogue");
+    const lookAroundWrap = document.getElementById("lookAroundWrap");
+    const lookAroundBtn = document.getElementById("lookAroundBtn");
 
-    setTimeout(() => {
-      document.getElementById("logo").style.opacity = 1;
-      setTimeout(() => {
-        document.getElementById("logo").style.opacity = 0;
-        dialogue.style.opacity = 1;
-        typeText();
-      }, 3000);
-    }, 800);
-  };
+    const introText = "You wake up on a beach. Warm sand, slow waves, no memory of how you got here.";
 
-  dialogue.onclick = () => {
-    if (typing) {
-      typing = false;
-      dialogue.textContent = introText;
-      lookAround.style.opacity = 1;
+    function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+    function fadeInMusic(durationMs = 1800){
+      music.volume = 0;
+      const start = performance.now();
+      const step = (t) => {
+        const p = Math.min(1, (t - start) / durationMs);
+        music.volume = p;
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
     }
-  };
-</script>
 
-</body>
-</html>
+    let typing = false;
+    let typedAll = false;
+    let timer = null;
+
+    function typewriter(text, cps = 38){
+      if (timer) clearTimeout(timer);
+      typing = true;
+      typedAll = false;
+      dialogue.textContent = "";
+      let i = 0;
+      const delay = Math.max(10, Math.floor(1000 / cps));
+
+      const tick = () => {
+        if (!typing) return;
+        i += 1;
+        dialogue.textContent = text.slice(0, i);
+        if (i
