@@ -116,6 +116,18 @@ html, body {
   transform-origin: 50% 50%;
 }
 
+/* Ocean overlay animation (shift right 13px then back) */
+.ocean {
+  animation: oceanShift 2800ms ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes oceanShift {
+  0%   { transform: translateX(0px); }
+  50%  { transform: translateX(13px); }
+  100% { transform: translateX(0px); }
+}
+
 .scene-haze {
   filter: blur(0px) saturate(1) brightness(1);
   opacity: 1;
@@ -240,6 +252,7 @@ html, body {
 
       <div class="world scene-haze groggy" id="world">
         <img class="layer" src="starti.png" alt="">
+        <img class="layer ocean" src="startiocean.png" alt="">
       </div>
 
       <div class="vignette groggy" id="vignette"></div>
@@ -376,12 +389,11 @@ document.addEventListener("click", e => {
 });
 
 /*
-Goal: about 3 seconds from blur ending to title appearing.
-NEW:
+Intro motion (no left):
 1) slow look right
 2) back to center
 3) zoom out
-All still ~3000ms (with a tiny pause).
+~3000ms total
 */
 let raf = null;
 let motionStart = 0;
@@ -482,13 +494,12 @@ startButton.addEventListener("click", () => {
 
   setGroggy(true);
 
-  // TWO BLINKS, sped up
+  // TWO BLINKS
   let t = 180;
   setTimeout(() => setEyelids("open1", 350), t);  t += 430;
   setTimeout(() => setEyelids("closed", 260), t); t += 330;
   setTimeout(() => setEyelids("open2", 520), t);
 
-  // Blur ends soon after final open starts, then we begin the look motion
   const blurEndAt = t + 120;
 
   setTimeout(() => {
@@ -496,7 +507,6 @@ startButton.addEventListener("click", () => {
     startLookAroundMotion();
   }, blurEndAt);
 
-  // Motion total is ~3000ms from blur end, title appears immediately after
   const motionTotal = 1500 + 750 + 450 + 300;
 
   const titleIn = blurEndAt + motionTotal;
