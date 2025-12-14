@@ -104,7 +104,7 @@ html, body {
   pointer-events: none;
 }
 
-/* WORLD wrapper (moves) */
+/* WORLD wrapper (moves + zooms) */
 .world {
   position: absolute;
   left: 0;
@@ -113,7 +113,8 @@ html, body {
   height: 1080px;
   z-index: 1;
   will-change: transform, filter, opacity;
-  transform: translate3d(0px, 0px, 0px);
+  transform: translate3d(0px, 0px, 0px) scale(1);
+  transform-origin: 50% 50%;
 }
 
 /* waking up blur (applied to .world) */
@@ -146,29 +147,6 @@ html, body {
 }
 .vignette.groggy { opacity: 1; }
 .vignette.clear { opacity: 0.18; }
-
-/* directional edge shading (fixed overlay, reacts to x movement) */
-.edge {
-  position: absolute;
-  inset: 0;
-  z-index: 9;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 180ms linear;
-  mix-blend-mode: multiply;
-}
-.edge.left {
-  background: linear-gradient(90deg,
-    rgba(0,0,0,0.62) 0%,
-    rgba(0,0,0,0.18) 26%,
-    rgba(0,0,0,0.0) 55%);
-}
-.edge.right {
-  background: linear-gradient(270deg,
-    rgba(0,0,0,0.62) 0%,
-    rgba(0,0,0,0.18) 26%,
-    rgba(0,0,0,0.0) 55%);
-}
 
 .frame { z-index: 10; }
 
@@ -263,15 +241,13 @@ html, body {
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
 
-      <!-- WORLD (moves + blurs) -->
+      <!-- WORLD (moves + blurs + zooms) -->
       <div class="world scene-haze groggy" id="world">
         <img class="layer" id="sceneImg" src="starti.png" alt="">
       </div>
 
       <!-- fixed overlays -->
       <div class="vignette groggy" id="vignette"></div>
-      <div class="edge left" id="edgeLeft"></div>
-      <div class="edge right" id="edgeRight"></div>
 
       <img class="layer frame" src="stsframe3.png" alt="">
       <img class="title-layer" id="title" src="stslogo2.png" alt="">
@@ -314,8 +290,6 @@ const stageWrapper = document.getElementById("stageWrapper");
 
 const world = document.getElementById("world");
 const vignette = document.getElementById("vignette");
-const edgeLeft = document.getElementById("edgeLeft");
-const edgeRight = document.getElementById("edgeRight");
 
 const storyLines = [
   "You wake up on a beach.",
@@ -406,82 +380,88 @@ document.addEventListener("click", e => {
   advanceStory();
 });
 
-/* LOOK AROUND MOTION (level 5) */
+/* LOOK AROUND MOTION:
+   - start slightly zoomed in so movement never reveals edges
+   - while groggy: "look up" drift
+   - after clear: one look left, then one look right
+   - then zoom back to 1.0 and stop movement
+*/
 let raf = null;
 let motionStart = 0;
 
-// position + targets
-let x = 0, y = 0;
-let tx = 0, ty = 0;
-
-// phases
-let scanning = false;
-let scanStart = 0;
+// motion state
+let x = 0, y = 0, z = 1;
+let tx = 0, ty = 0, tz = 1;
 
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-function updateEdges() {
-  // stronger edges when moving (tasteful but noticeable)
-  const strength = Math.min(Math.abs(x) / 12, 1);
-  const base = vignette.classList.contains("clear") ? 0.10 : 0.18;
-  const edgeOpacity = base + strength * 0.28;
-
-  if (x > 0.6) {
-    edgeRight.style.opacity = edgeOpacity.toFixed(3);
-    edgeLeft.style.opacity = "0";
-  } else if (x < -0.6) {
-    edgeLeft.style.opacity = edgeOpacity.toFixed(3);
-    edgeRight.style.opacity = "0";
-  } else {
-    edgeLeft.style.opacity = "0";
-    edgeRight.style.opacity = "0";
-  }
-}
-
 function applyWorld() {
-  world.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0)`;
-  updateEdges();
+  world.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${z.toFixed(4)})`;
 }
+
+function easeOutCubic(p) { return 1 - Math.pow(1 - p, 3); }
 
 function motionLoop(now) {
   if (!motionStart) motionStart = now;
   const t = now - motionStart;
 
-  // Phase 1: "looking up / sitting up" during groggy (0 -> 2600ms)
-  if (t < 2600) {
-    const p = t / 2600;
-    const e = 1 - Math.pow(1 - p, 3); // ease out
-    tx = lerp(-8, 14, e);     // tiny sideways drift
-    ty = lerp(18, -30, e);    // lift up
+  // Always start slightly zoomed in
+  tz = 1.03;
+
+  // Phase 1 (0 -> 2400ms): groggy lift up + small drift
+  if (t < 2400) {
+    const p = easeOutCubic(t / 2400);
+    tx = lerp(-6, 10, p);
+    ty = lerp(18, -26, p);
+    tz = lerp(1.05, 1.03, p); // start more zoomed, relax slightly
   }
 
-  // Phase 2: settle to center as vision clears (2600 -> 4600ms)
-  if (t >= 2600 && t < 4600) {
-    const p = (t - 2600) / 2000;
-    const e = 1 - Math.pow(1 - p, 3);
-    tx = lerp(tx, 0, e);
-    ty = lerp(ty, 0, e);
+  // Phase 2 (2400 -> 4200ms): settle closer to center
+  if (t >= 2400 && t < 4200) {
+    const p = easeOutCubic((t - 2400) / 1800);
+    tx = lerp(tx, 0, p);
+    ty = lerp(ty, 0, p);
+    tz = lerp(tz, 1.03, p);
   }
 
-  // Phase 3: gentle horizon scan AFTER clear (starts 4600ms)
-  if (t >= 4600) {
-    if (!scanning) {
-      scanning = true;
-      scanStart = now;
-    }
-    const s = (now - scanStart) / 1000; // seconds
-    const ampX = 12;     // level 5 noticeable
-    const period = 9.5;  // slow scan
-    tx = Math.sin((s * 2 * Math.PI) / period) * ampX;
-    ty = Math.sin((s * 2 * Math.PI) / (period * 1.8)) * 2.5; // tiny vertical breath
+  // Phase 3: after clear, do ONE look left, ONE look right, then stop + zoom out
+  // 4200 -> 6200ms look left, 6200 -> 8200ms look right, 8200 -> 9800ms zoom back and lock
+  if (t >= 4200 && t < 6200) {
+    const p = easeOutCubic((t - 4200) / 2000);
+    tx = lerp(0, -12, p);
+    ty = lerp(0, -1.5, p);
+    tz = 1.03;
+  } else if (t >= 6200 && t < 8200) {
+    const p = easeOutCubic((t - 6200) / 2000);
+    tx = lerp(-12, 12, p);
+    ty = lerp(-1.5, -1.5, p);
+    tz = 1.03;
+  } else if (t >= 8200 && t < 9800) {
+    const p = easeOutCubic((t - 8200) / 1600);
+    tx = lerp(12, 0, p);
+    ty = lerp(-1.5, 0, p);
+    tz = lerp(1.03, 1.0, p); // zoom back to original
+  } else if (t >= 9800) {
+    // lock at the original
+    tx = 0; ty = 0; tz = 1.0;
   }
 
   // smooth follow
-  x = lerp(x, tx, 0.06);
-  y = lerp(y, ty, 0.06);
+  x = lerp(x, tx, 0.07);
+  y = lerp(y, ty, 0.07);
+  z = lerp(z, tz, 0.07);
 
   applyWorld();
-  raf = requestAnimationFrame(motionLoop);
+
+  if (t < 10050) {
+    raf = requestAnimationFrame(motionLoop);
+  } else {
+    // final snap to exact
+    x = 0; y = 0; z = 1.0;
+    applyWorld();
+    cancelAnimationFrame(raf);
+    raf = null;
+  }
 }
 
 startButton.addEventListener("click", () => {
@@ -498,33 +478,31 @@ startButton.addEventListener("click", () => {
   story.classList.remove("visible");
   choice.classList.remove("visible");
 
-  // Reset motion + visuals
+  // Reset motion
   if (raf) cancelAnimationFrame(raf);
   raf = null;
   motionStart = 0;
-  scanning = false;
-  scanStart = 0;
-  x = 0; y = 0; tx = 0; ty = 0;
-  edgeLeft.style.opacity = "0";
-  edgeRight.style.opacity = "0";
+  x = 0; y = 0; z = 1;
+  tx = 0; ty = 0; tz = 1;
+  applyWorld();
 
   setGroggy(true);
 
-  // Start motion immediately (during blur)
+  // Start motion immediately
   raf = requestAnimationFrame(motionLoop);
 
-  // Blink sequence (your current one)
-  let t = 250;
-  setTimeout(() => setEyelids("open1", 750), t); t += 950;
-  setTimeout(() => setEyelids("closed", 520), t); t += 750;
-  setTimeout(() => setEyelids("open1", 700), t); t += 900;
-  setTimeout(() => setEyelids("closed", 500), t); t += 700;
-  setTimeout(() => setEyelids("open2", 1200), t);
+  // TWO BLINKS (removed extra blink)
+  let t = 300;
+  setTimeout(() => setEyelids("open1", 700), t);  t += 900;   // partial open
+  setTimeout(() => setEyelids("closed", 480), t); t += 650;   // blink shut
+  setTimeout(() => setEyelids("open2", 1100), t);             // full open
 
   // Clear blur shortly after final open begins
   setTimeout(() => setGroggy(false), t + 250);
 
-  const fullyOpenAt = t + 1200;
+  const fullyOpenAt = t + 1100;
+
+  // Title timing (unchanged, adjust numbers here if you want it earlier/later)
   const titleIn = fullyOpenAt + 4000;
   const titleOut = titleIn + 4000;
 
