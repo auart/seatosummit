@@ -64,21 +64,34 @@ body { touch-action: manipulation; }
 .story {
   position: absolute;
   left: 50%;
-  bottom: 190px;
+  bottom: 190px;                 /* your adjusted value */
   transform: translateX(-50%);
   width: 900px;
+
   font-family: "Silkscreen";
   font-size: 24px;
-  line-height: 1.2;
+  line-height: 1.25;
   color: black;
+
   opacity: 0;
   transition: opacity 600ms ease;
   z-index: 25;
-  padding-left: 50px;
-  padding-right: 50px;
+
+  /* NEW: lock text to the top */
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+
+  /* NEW: prevent vertical shifting */
+  min-height: 96px;
+
+  /* spacing */
+  padding: 16px 50px 0 50px;
   box-sizing: border-box;
+
   user-select: none;
 }
+
 .story.visible { opacity: 1; }
 
 /* Button component */
