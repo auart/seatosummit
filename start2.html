@@ -1,278 +1,357 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sea to Summit, Start 2</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sea to Summit, Start 2</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
-  <style>
-    html, body { height: 100%; margin: 0; background: #000; }
-    body { overflow: hidden; user-select: none; }
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: black;
+  position: fixed;
+  inset: 0;
+}
 
-    :root{
-      --win-x: 772.3733px;
-      --win-y: 417.491px;
-      --win-w: 828.2474px;
-      --win-h: 546.9492px;
+body { touch-action: manipulation; }
+* { overscroll-behavior: none; }
 
-      --txt-x: 773.1405px;
-      --txt-y: 798.7486px;
-      --txt-w: 732.9919px;
-      --txt-h: 76.155px;
-    }
+.app {
+  position: fixed;
+  inset: 0;
+  background: black;
+  overflow: hidden;
+}
 
-    #app { position: fixed; inset: 0; background: #000; }
-    #stageWrap { position: fixed; inset: 0; background: #000; }
+/* Stage scaling */
+.stage-wrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  width: 1920px;
+  height: 1080px;
+}
 
-    #stage{
-      width: 1920px;
-      height: 1080px;
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform-origin: center center;
-    }
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+}
 
-    #window{
-      position: absolute;
-      left: var(--win-x);
-      top: var(--win-y);
-      width: var(--win-w);
-      height: var(--win-h);
-      overflow: hidden;
-    }
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
 
-    #sceneImage{
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      image-rendering: pixelated;
-    }
+.scene { z-index: 1; }
+.frame { z-index: 10; }
 
-    #waterOverlay{
-      position: absolute;
-      inset: 0;
-      width: 110%;
-      height: 100%;
-      opacity: 0.75;
-      pointer-events: none;
-      image-rendering: pixelated;
-      animation: waterDrift 6s linear infinite;
-      will-change: transform;
-    }
-    @keyframes waterDrift{
-      0%   { transform: translateX(-14px); }
-      50%  { transform: translateX(22px); }
-      100% { transform: translateX(-14px); }
-    }
+/* Story */
+.story {
+  position: absolute;
+  left: 50%;
+  bottom: 212px;
+  transform: translateX(-50%);
+  width: 900px;
+  font-family: "Silkscreen";
+  font-size: 24px;
+  line-height: 1.2;
+  color: black;
+  opacity: 0;
+  transition: opacity 600ms ease;
+  z-index: 25;
+  padding-left: 50px;
+  padding-right: 50px;
+  box-sizing: border-box;
+  user-select: none;
+}
+.story.visible { opacity: 1; }
 
-    #frameImage{
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      image-rendering: pixelated;
-    }
+/* Button component */
+.button {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+}
 
-    #dialogue{
-      position: absolute;
-      left: var(--txt-x);
-      top: var(--txt-y);
-      width: var(--txt-w);
-      height: var(--txt-h);
-      font-family: "Silkscreen", system-ui, sans-serif;
-      font-size: 22px;
-      line-height: 1.45;
-      color: #2b1607;
-      pointer-events: auto;
-      overflow: hidden;
-    }
+.button img {
+  width: 420px;
+  image-rendering: pixelated;
+  display: block;
+}
 
-    #dialogueHint{
-      position: absolute;
-      left: var(--txt-x);
-      top: calc(var(--txt-y) + var(--txt-h) + 10px);
-      width: var(--txt-w);
-      font-family: "Silkscreen", system-ui, sans-serif;
-      font-size: 16px;
-      color: rgba(43,22,7,0.55);
-      pointer-events: none;
-    }
+.button span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: "Press Start 2P";
+  font-size: 18px;
+  color: black;
+  pointer-events: none;
+  text-align: center;
+  padding: 0 14px;
+  line-height: 1.05;
+}
 
-    .btn{
-      position: relative;
-      border: 0;
-      padding: 0;
-      background: transparent;
-      cursor: pointer;
-      outline: none;
-    }
-    .btn img{ display: block; image-rendering: pixelated; }
-    .btn span{
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      font-family: "Press Start 2P", system-ui, sans-serif;
-      font-size: 18px;
-      line-height: 1.2;
-      color: #2b1607;
-      text-align: center;
-      padding: 0 18px;
-      pointer-events: none;
-    }
+/* Choices row */
+.choices {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 80px;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 700ms ease;
+  z-index: 30;
+}
+.choices.visible { opacity: 1; }
 
-    #choiceBtnWrap{
-      position: absolute;
-      left: 50%;
-      top: 1080px;
-      transform: translateX(-50%);
-      margin-top: 24px;
-      display: flex;
-      gap: 48px;
-      opacity: 0;
-      transition: opacity 700ms ease;
-      pointer-events: none;
-      z-index: 100;
-    }
-    #choiceBtnWrap.visible{
-      opacity: 1;
-      pointer-events: auto;
-    }
+.choice-link {
+  text-decoration: none;
+  transform: scale(0.84);
+  transform-origin: center center;
+}
 
-    #choiceBtnWrap .btn{
-      width: 520px;
-      height: 150px;
-    }
-    #choiceBtnWrap img{
-      width: 520px;
-      height: 150px;
-    }
-  </style>
+.choice-link.disabled {
+  opacity: 0.35;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+
+/* (optional) tiny cursor polish */
+.choice-link:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.5);
+  outline-offset: 6px;
+}
+</style>
 </head>
 
 <body>
-  <div id="app">
-    <div id="stageWrap">
-      <div id="stage">
+<div class="app">
 
-        <div id="window">
-          <img id="sceneImage" src="island_base.png" alt="">
-          <img id="waterOverlay" src="water_overlay.png" alt="">
-        </div>
+  <div class="stage-wrapper" id="stageWrapper">
+    <div class="stage">
+      <img class="layer scene" src="starthome.png" alt="">
+      <img class="layer frame" src="stsframe3.png" alt="">
 
-        <img id="frameImage" src="stsframe.png" alt="">
+      <div class="story" id="story" aria-label="Story text"></div>
 
-        <div id="dialogue"></div>
-        <div id="dialogueHint">click to finish text</div>
-
-        <div id="choiceBtnWrap">
-          <button class="btn choice" data-target="left">
+      <div class="choices" id="choices">
+        <a class="choice-link" id="btnBeach" href="beach1.html">
+          <div class="button">
             <img src="stsbutton.png" alt="">
-            <span>Go left along the beach</span>
-          </button>
+            <span>Follow the beach</span>
+          </div>
+        </a>
 
-          <button class="btn choice" data-target="grove">
+        <a class="choice-link" id="btnPalms" href="palms1.html">
+          <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Enter the palm grove</span>
-          </button>
+          </div>
+        </a>
 
-          <button class="btn choice" data-target="rocks">
+        <a class="choice-link" id="btnRocks" href="rocky1.html">
+          <div class="button">
             <img src="stsbutton.png" alt="">
-            <span>Explore the rocky shoreline</span>
-          </button>
-        </div>
-
+            <span>Explore the rocky shore</span>
+          </div>
+        </a>
       </div>
     </div>
   </div>
 
-  <script>
-    const BASE_W = 1920;
-    const BASE_H = 1080;
+  <!-- Persistent ambience (Option B) -->
+  <audio id="waves" src="waves.mp3" preload="auto" loop></audio>
 
-    const stage = document.getElementById("stage");
+</div>
 
-    function scaleStage(){
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const s = Math.min(vw / BASE_W, vh / BASE_H);
-      stage.style.transform = `translate(-50%, -50%) scale(${s})`;
+<script>
+/* HARD scroll lock */
+window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
+window.addEventListener("keydown", e => {
+  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
+});
+
+/* Stage scaling */
+const stageWrapper = document.getElementById("stageWrapper");
+function scaleStage() {
+  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+}
+window.addEventListener("resize", scaleStage);
+scaleStage();
+
+/* Waves persistence (Option B) */
+const waves = document.getElementById("waves");
+const WAVE_TIME_KEY = "sts_waves_time_v1";
+const WAVE_VOL_KEY  = "sts_waves_vol_v1";
+
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+function restoreWaves() {
+  // default volume (you can tweak per page later)
+  const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
+  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
+
+  const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
+  if (Number.isFinite(savedT) && savedT > 0) {
+    try { waves.currentTime = savedT; } catch (_) {}
+  }
+
+  const p = waves.play();
+  if (p && typeof p.catch === "function") {
+    // If autoplay is blocked, start on next user interaction (first click)
+    p.catch(() => {
+      const resume = () => {
+        waves.play().catch(() => {});
+        document.removeEventListener("click", resume, true);
+      };
+      document.addEventListener("click", resume, true);
+    });
+  }
+}
+
+function startSavingWaves() {
+  // save frequently for smoother continuity across pages
+  setInterval(() => {
+    if (!waves.paused && Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
     }
-    window.addEventListener("resize", scaleStage);
-    scaleStage();
+  }, 250);
 
-    /* If Y feels flipped, set this to true */
-    const FLIP_Y_FROM_BOTTOM = false;
-
-    function maybeFlipY(){
-      if (!FLIP_Y_FROM_BOTTOM) return;
-
-      const root = document.documentElement;
-      const cs = getComputedStyle(root);
-
-      const winY = parseFloat(cs.getPropertyValue("--win-y"));
-      const winH = parseFloat(cs.getPropertyValue("--win-h"));
-      const txtY = parseFloat(cs.getPropertyValue("--txt-y"));
-      const txtH = parseFloat(cs.getPropertyValue("--txt-h"));
-
-      const newWinY = (BASE_H - winY - winH);
-      const newTxtY = (BASE_H - txtY - txtH);
-
-      root.style.setProperty("--win-y", newWinY + "px");
-      root.style.setProperty("--txt-y", newTxtY + "px");
+  // save on tab hide / navigate away
+  document.addEventListener("visibilitychange", () => {
+    if (Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
     }
-    maybeFlipY();
+  });
 
-    const dialogue = document.getElementById("dialogue");
-    const dialogueHint = document.getElementById("dialogueHint");
-    const choiceBtnWrap = document.getElementById("choiceBtnWrap");
+  window.addEventListener("beforeunload", () => {
+    if (Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+    }
+  });
+}
 
-    const text = "You sit up slowly. The tide keeps its rhythm. The tree line feels closer than it should.";
+waves.addEventListener("canplay", () => {
+  // in case currentTime set too early in some browsers
+  const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
+  if (Number.isFinite(savedT) && savedT > 0) {
+    try { waves.currentTime = savedT; } catch (_) {}
+  }
+}, { once:true });
 
-    let typing = true;
-    let i = 0;
-    const cps = 38;
-    let timer = null;
+restoreWaves();
+startSavingWaves();
 
-    function typeTick(){
-      if (!typing) return;
-      i += 1;
-      dialogue.textContent = text.slice(0, i);
-      if (i < text.length) {
-        timer = setTimeout(typeTick, Math.max(10, Math.floor(1000 / cps)));
-      } else {
-        typing = false;
-        dialogueHint.style.display = "none";
-        choiceBtnWrap.classList.add("visible");
+/* Story: click anywhere to advance line-by-line */
+const story = document.getElementById("story");
+const choices = document.getElementById("choices");
+
+const storyLines = [
+  "You take a moment to get your bearings.",
+  "To your left, the beach curves along the shoreline.",
+  "Ahead, a dense grove of palms blocks the island’s interior.",
+  "To your right, dark lava rocks jut into the water."
+];
+
+let lineIndex = 0;
+let charIndex = 0;
+let typing = null;
+let isTyping = false;
+let storyActive = true;
+
+function startTypingLine() {
+  clearInterval(typing);
+  isTyping = true;
+  charIndex = 0;
+  story.textContent = "";
+  const current = storyLines[lineIndex];
+
+  typing = setInterval(() => {
+    charIndex++;
+    story.textContent = current.slice(0, charIndex);
+    if (charIndex >= current.length) {
+      clearInterval(typing);
+      isTyping = false;
+
+      if (lineIndex === storyLines.length - 1) {
+        choices.classList.add("visible");
       }
     }
-    typeTick();
+  }, 24);
+}
 
-    dialogue.addEventListener("click", () => {
-      if (!typing) return;
-      typing = false;
-      if (timer) clearTimeout(timer);
-      dialogue.textContent = text;
-      dialogueHint.style.display = "none";
-      choiceBtnWrap.classList.add("visible");
-    });
+function advanceStory() {
+  if (!storyActive) return;
 
-    document.querySelectorAll(".choice").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const t = btn.dataset.target;
-        if (t === "left") window.location.href = "beach_left.html";
-        if (t === "grove") window.location.href = "palm_grove.html";
-        if (t === "rocks") window.location.href = "rocky_shore.html";
-      });
-    });
-  </script>
+  if (isTyping) {
+    clearInterval(typing);
+    isTyping = false;
+    story.textContent = storyLines[lineIndex];
+    if (lineIndex === storyLines.length - 1) choices.classList.add("visible");
+    return;
+  }
+
+  if (lineIndex < storyLines.length - 1) {
+    lineIndex++;
+    startTypingLine();
+  }
+}
+
+document.addEventListener("click", (e) => {
+  // don’t hijack clicks on choice buttons
+  if (e.target.closest(".choice-link")) return;
+  advanceStory();
+});
+
+/* Show story immediately */
+story.classList.add("visible");
+startTypingLine();
+
+/* Visited tracking: disable previously visited paths */
+const btnBeach = document.getElementById("btnBeach");
+const btnPalms = document.getElementById("btnPalms");
+const btnRocks = document.getElementById("btnRocks");
+
+const VIS_BEACH = "sts_visited_beach1_v1";
+const VIS_PALMS = "sts_visited_palms1_v1";
+const VIS_ROCKS = "sts_visited_rocky1_v1";
+
+function applyVisitedState() {
+  if (localStorage.getItem(VIS_BEACH) === "1") btnBeach.classList.add("disabled");
+  if (localStorage.getItem(VIS_PALMS) === "1") btnPalms.classList.add("disabled");
+  if (localStorage.getItem(VIS_ROCKS) === "1") btnRocks.classList.add("disabled");
+}
+applyVisitedState();
+
+/* Set visited immediately on click (simplest + reliable) */
+btnBeach.addEventListener("click", () => localStorage.setItem(VIS_BEACH, "1"));
+btnPalms.addEventListener("click", () => localStorage.setItem(VIS_PALMS, "1"));
+btnRocks.addEventListener("click", () => localStorage.setItem(VIS_ROCKS, "1"));
+</script>
 </body>
 </html>
