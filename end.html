@@ -115,19 +115,20 @@ body { touch-action: manipulation; }
 .actions {
   position: absolute;
   left: 50%;
-  bottom: 35px;
-  transform: translateX(-50%);
+  bottom: 190px;                 /* tweak this number if needed */
+  transform: translateX(-50%) scale(0.9);
+  transform-origin: center center;
+  z-index: 30;
   opacity: 0;
   transition: opacity 700ms ease;
-  z-index: 30;
 }
+
 .actions.visible { opacity: 1; }
 
 .action-link {
   text-decoration: none;
-  transform: scale(0.9);
-  transform-origin: center center;
   display: inline-block;
+  transform: none;         
 }
 
 .action-link:focus-visible {
