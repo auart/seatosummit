@@ -379,10 +379,11 @@ document.addEventListener("click", e => {
 });
 
 /* MOTION:
-   - more zoom during look-up
-   - faster look-up
-   - quicker left/right looks while keeping same zoom
-   - title comes in after the look sequence ends (after it settles)
+   - start MORE zoomed in
+   - NO upward movement
+   - quick look left then right
+   - hold still for a couple seconds
+   - then title comes in
 */
 let raf = null;
 let motionStart = 0;
@@ -401,61 +402,50 @@ function motionLoop(now) {
   if (!motionStart) motionStart = now;
   const t = now - motionStart;
 
-  // Phase 1 (0 -> 1500ms): FAST look-up with STRONGER zoom
-  if (t < 1500) {
-    const p = easeOutCubic(t / 1500);
-    tx = lerp(-6, 10, p);
-    ty = lerp(18, -34, p);
-    tz = lerp(1.00, 1.075, p); // more zoom on look-up
-  }
+  // Start zoomed in (stronger so no edges ever show)
+  tz = 1.075;
+  ty = 0;
 
-  // Phase 2 (1500 -> 2200ms): settle slightly (keep zoom)
-  if (t >= 1500 && t < 2200) {
-    const p = easeOutCubic((t - 1500) / 700);
-    tx = lerp(tx, 0, p);
-    ty = lerp(ty, -6, p);
-    tz = lerp(tz, 1.06, p); // keep a bit of zoom
-  }
-
-  // Phase 3: quicker ONE look left, ONE look right (keep same zoom)
-  // 2200 -> 3200 left, 3200 -> 4200 right
-  if (t >= 2200 && t < 3200) {
-    const p = easeOutCubic((t - 2200) / 1000);
+  // Phase 1 (0 -> 900ms): look left (quick)
+  if (t < 900) {
+    const p = easeOutCubic(t / 900);
     tx = lerp(0, -12, p);
-    ty = -6;
-    tz = 1.06;
-  } else if (t >= 3200 && t < 4200) {
-    const p = easeOutCubic((t - 3200) / 1000);
+  }
+
+  // Phase 2 (900 -> 1800ms): look right (quick)
+  else if (t >= 900 && t < 1800) {
+    const p = easeOutCubic((t - 900) / 900);
     tx = lerp(-12, 12, p);
-    ty = -6;
-    tz = 1.06;
   }
 
-  // Phase 4 (4200 -> 5000): settle to center (still zoomed a bit)
-  if (t >= 4200 && t < 5000) {
-    const p = easeOutCubic((t - 4200) / 800);
+  // Phase 3 (1800 -> 2400ms): return to center (fast)
+  else if (t >= 1800 && t < 2400) {
+    const p = easeOutCubic((t - 1800) / 600);
     tx = lerp(12, 0, p);
-    ty = lerp(-6, 0, p);
-    tz = lerp(1.06, 1.03, p);
   }
 
-  // Phase 5 (5000 -> 5800): zoom back to normal and lock
-  if (t >= 5000 && t < 5800) {
-    const p = easeOutCubic((t - 5000) / 800);
-    tz = lerp(1.03, 1.0, p);
-    tx = 0; ty = 0;
-  } else if (t >= 5800) {
-    tx = 0; ty = 0; tz = 1.0;
+  // Phase 4 (2400 -> 3800ms): hold still (this is your "couple seconds")
+  else if (t >= 2400 && t < 3800) {
+    tx = 0;
+  }
+
+  // Phase 5 (3800 -> 4600ms): zoom back to normal and lock
+  else if (t >= 3800 && t < 4600) {
+    const p = easeOutCubic((t - 3800) / 800);
+    tz = lerp(1.075, 1.0, p);
+    tx = 0;
+  } else if (t >= 4600) {
+    tx = 0; tz = 1.0;
   }
 
   // smooth follow
-  x = lerp(x, tx, 0.10);
-  y = lerp(y, ty, 0.10);
-  z = lerp(z, tz, 0.10);
+  x = lerp(x, tx, 0.12);
+  y = lerp(y, 0, 0.12);
+  z = lerp(z, tz, 0.12);
 
   applyWorld();
 
-  if (t < 5900) {
+  if (t < 4700) {
     raf = requestAnimationFrame(motionLoop);
   } else {
     x = 0; y = 0; z = 1.0;
@@ -501,14 +491,9 @@ startButton.addEventListener("click", () => {
   // Clear blur shortly after final open begins
   setTimeout(() => setGroggy(false), t + 220);
 
-  const fullyOpenAt = t + 1000;
-
-  // Title should come in AFTER the look sequence ends.
-  // Look sequence ends at ~5800ms from motion start.
-  const motionEndsAt = 5800;
-
-  // Title timing: come in right after motion ends (with a tiny breath)
-  const titleIn = motionEndsAt + 300;
+  // Title comes AFTER motion loop + extra pause already baked in
+  // Motion ends ~4600ms from motion start, plus we held still inside motion.
+  const titleIn = 4600 + 200;   // tiny breath after zoom out finishes
   const titleOut = titleIn + 4000;
 
   setTimeout(() => title.classList.add("visible"), titleIn);
