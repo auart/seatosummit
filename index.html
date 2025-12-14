@@ -466,10 +466,11 @@ function motionLoop(now) {
   if (!motionStart) motionStart = now;
   const t = now - motionStart;
 
-  const lookRightDur = 1500;
-  const backCenterDur = 750;
-  const zoomOutDur = 450;
-  const pauseDur = 300;
+  /* Slightly longer look-around (was ~3000ms total), now ~4600ms total */
+  const lookRightDur = 2200;
+  const backCenterDur = 1200;
+  const zoomOutDur = 700;
+  const pauseDur = 500;
 
   const rightEnd = lookRightDur;
   const centerEnd = rightEnd + backCenterDur;
@@ -516,6 +517,7 @@ startButton.addEventListener("click", () => {
 
   restoreWaves();
 
+  /* fade in waves */
   const targetVol = 0.7;
   waves.volume = 0;
   const p = waves.play();
@@ -536,6 +538,7 @@ startButton.addEventListener("click", () => {
   story.classList.remove("visible");
   choice.classList.remove("visible");
 
+  /* reset motion */
   if (raf) cancelAnimationFrame(raf);
   raf = null;
   motionStart = 0;
@@ -546,20 +549,20 @@ startButton.addEventListener("click", () => {
 
   setGroggy(true);
 
-  /* two blinks */
-  let t = 180;
-  setTimeout(() => setEyelids("open1", 350), t);  t += 430;
-  setTimeout(() => setEyelids("closed", 260), t); t += 330;
-  setTimeout(() => setEyelids("open2", 520), t);
+  /* Blinks slightly longer (was 350/260/520 feel), now a bit slower */
+  let t = 220;
+  setTimeout(() => setEyelids("open1", 450), t);  t += 560;
+  setTimeout(() => setEyelids("closed", 320), t); t += 420;
+  setTimeout(() => setEyelids("open2", 700), t);
 
-  const blurEndAt = t + 120;
+  const blurEndAt = t + 180;
 
   setTimeout(() => {
     setGroggy(false);
     startLookAroundMotion();
   }, blurEndAt);
 
-  const motionTotal = 1500 + 750 + 450 + 300;
+  const motionTotal = 2200 + 1200 + 700 + 500;
 
   const titleIn = blurEndAt + motionTotal;
   const titleOut = titleIn + 4000;
