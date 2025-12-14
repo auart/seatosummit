@@ -20,10 +20,6 @@ html, body {
   inset: 0;
 }
 
-body {
-  touch-action: manipulation;
-}
-
 * { overscroll-behavior: none; }
 
 .app {
@@ -100,8 +96,7 @@ body {
 
 .layer {
   position: absolute;
-  left: 0;
-  top: 0;
+  inset: 0;
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
@@ -110,57 +105,34 @@ body {
 
 .world {
   position: absolute;
-  left: 0;
-  top: 0;
-  width: 1920px;
-  height: 1080px;
+  inset: 0;
   z-index: 1;
-  will-change: transform, filter, opacity;
-  transform: translate3d(0px, 0px, 0px) scale(1);
+  will-change: transform, filter;
   transform-origin: 50% 50%;
 }
 
-/* Ocean overlay animation:
-   shift right 13px, scale up a bit, and bias the scale "down" by nudging Y */
 .ocean {
   animation: oceanShift 3600ms cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
-  will-change: transform;
   transform-origin: 50% 60%;
 }
 
 @keyframes oceanShift {
-  0% {
-    transform: translate3d(0px, 0px, 0) scale(1);
-  }
-
-  20% {
-    transform: translate3d(2px, 1px, 0) scale(1.005);
-  }
-
-  55% {
-    transform: translate3d(13px, 6px, 0) scale(1.03);
-  }
-
-  70% {
-    transform: translate3d(13px, 6px, 0) scale(1.03);
-  }
-
-  100% {
-    transform: translate3d(0px, 0px, 0) scale(1);
-  }
+  0%   { transform: translate3d(0px,0px,0) scale(1); }
+  20%  { transform: translate3d(2px,1px,0) scale(1.005); }
+  55%  { transform: translate3d(13px,6px,0) scale(1.03); }
+  70%  { transform: translate3d(13px,6px,0) scale(1.03); }
+  100% { transform: translate3d(0px,0px,0) scale(1); }
 }
 
 .scene-haze {
-  filter: blur(0px) saturate(1) brightness(1);
-  opacity: 1;
   transition: filter 450ms ease, opacity 450ms ease;
 }
 .scene-haze.groggy {
-  filter: blur(5px) saturate(0.92) brightness(1.02);
+  filter: blur(5px) saturate(0.92);
   opacity: 0.92;
 }
 .scene-haze.clear {
-  filter: blur(0px) saturate(1) brightness(1);
+  filter: none;
   opacity: 1;
 }
 
@@ -171,7 +143,7 @@ body {
   pointer-events: none;
   opacity: 0;
   transition: opacity 450ms ease;
-  background: radial-gradient(circle at center,
+  background: radial-gradient(circle,
     rgba(0,0,0,0) 45%,
     rgba(0,0,0,0.25) 80%,
     rgba(0,0,0,0.55) 100%);
@@ -188,7 +160,6 @@ body {
   opacity: 0;
   transition: opacity 700ms ease;
   z-index: 20;
-  pointer-events: none;
 }
 .title-layer.visible { opacity: 1; }
 
@@ -200,16 +171,11 @@ body {
   width: 900px;
   font-family: "Silkscreen";
   font-size: 24px;
-  line-height: 1.2;
   color: black;
   opacity: 0;
   transition: opacity 600ms ease;
-  cursor: pointer;
   z-index: 25;
-  padding-left: 50px;
-  padding-right: 50px;
-  box-sizing: border-box;
-  user-select: none;
+  padding: 0 50px;
 }
 .story.visible { opacity: 1; }
 
@@ -221,7 +187,6 @@ body {
   opacity: 0;
   transition: opacity 700ms ease;
   z-index: 30;
-  text-decoration: none;
 }
 .choice.visible { opacity: 1; }
 
@@ -230,7 +195,6 @@ body {
   inset: 0;
   z-index: 70;
   pointer-events: none;
-  overflow: hidden;
   --pct: 0%;
   --dur: 350ms;
 }
@@ -242,16 +206,8 @@ body {
   background: black;
   transition: transform var(--dur) cubic-bezier(0.33,0,0.2,1);
 }
-
-.eyelid.top {
-  top: 0;
-  transform: translateY(calc(-1 * var(--pct)));
-}
-.eyelid.bottom {
-  bottom: 0;
-  transform: translateY(var(--pct));
-}
-
+.eyelid.top { top: 0; transform: translateY(calc(-1 * var(--pct))); }
+.eyelid.bottom { bottom: 0; transform: translateY(var(--pct)); }
 .eyelids.closed { --pct: 0%; }
 .eyelids.open1 { --pct: 45%; }
 .eyelids.open2 { --pct: 100%; }
@@ -300,241 +256,30 @@ body {
   </div>
 </div>
 
-<audio id="music" src="starttheme.m4a" preload="auto"></audio>
+<audio id="waves" src="waves.mp3" preload="auto" loop></audio>
 
 </div>
 
 <script>
-window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
-window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
-
+const startButton = document.getElementById("startButton");
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
-const startButton = document.getElementById("startButton");
-const title = document.getElementById("title");
-const story = document.getElementById("story");
-const choice = document.getElementById("choice");
-const eyelids = document.getElementById("eyelids");
-const music = document.getElementById("music");
-const stageWrapper = document.getElementById("stageWrapper");
-
-const world = document.getElementById("world");
-const vignette = document.getElementById("vignette");
-
-const storyLines = [
-  "You wake up on a beach.",
-  "Warm sand, slow waves.",
-  "No memory of how you got here."
-];
-
-let lineIndex = 0;
-let charIndex = 0;
-let typing = null;
-let isTyping = false;
-let storyActive = false;
-
-function scaleStage() {
-  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
-}
-window.addEventListener("resize", scaleStage);
-scaleStage();
-
-function fadeInMusic() {
-  music.volume = 0;
-  music.play();
-  let v = 0;
-  const fade = setInterval(() => {
-    v += 0.03;
-    music.volume = Math.min(v, 0.9);
-    if (v >= 0.9) clearInterval(fade);
-  }, 90);
-}
-
-function setEyelids(state, dur) {
-  eyelids.style.setProperty("--dur", dur + "ms");
-  eyelids.classList.remove("closed","open1","open2");
-  eyelids.classList.add(state);
-}
-
-function setGroggy(on) {
-  if (on) {
-    world.classList.add("groggy");
-    world.classList.remove("clear");
-    vignette.classList.add("groggy");
-    vignette.classList.remove("clear");
-  } else {
-    world.classList.remove("groggy");
-    world.classList.add("clear");
-    vignette.classList.remove("groggy");
-    vignette.classList.add("clear");
-  }
-}
-
-function startTypingLine() {
-  clearInterval(typing);
-  isTyping = true;
-  charIndex = 0;
-  story.textContent = "";
-  const current = storyLines[lineIndex];
-  typing = setInterval(() => {
-    charIndex++;
-    story.textContent = current.slice(0, charIndex);
-    if (charIndex >= current.length) {
-      clearInterval(typing);
-      isTyping = false;
-      if (lineIndex === storyLines.length - 1) {
-        choice.classList.add("visible");
-      }
-    }
-  }, 30);
-}
-
-function advanceStory() {
-  if (!storyActive) return;
-  if (isTyping) {
-    story.textContent = storyLines[lineIndex];
-    isTyping = false;
-    if (lineIndex === storyLines.length - 1) choice.classList.add("visible");
-    return;
-  }
-  if (lineIndex < storyLines.length - 1) {
-    lineIndex++;
-    startTypingLine();
-  }
-}
-
-document.addEventListener("click", e => {
-  if (e.target.closest("#startButton")) return;
-  if (e.target.closest("#choice")) return;
-  advanceStory();
-});
-
-let raf = null;
-let motionStart = 0;
-
-let x = 0, y = 0, z = 1;
-let tx = 0, ty = 0, tz = 1;
-
-function lerp(a, b, t) { return a + (b - a) * t; }
-function easeInOut(p) { return 0.5 - 0.5 * Math.cos(Math.PI * p); }
-
-function applyWorld() {
-  world.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${z.toFixed(4)})`;
-}
-
-function startLookAroundMotion() {
-  if (raf) cancelAnimationFrame(raf);
-  raf = null;
-  motionStart = 0;
-
-  x = 0;
-  y = 0;
-  z = 1.085;
-  tx = 0;
-  ty = 0;
-  tz = 1.085;
-  applyWorld();
-
-  raf = requestAnimationFrame(motionLoop);
-}
-
-function motionLoop(now) {
-  if (!motionStart) motionStart = now;
-  const t = now - motionStart;
-
-  const lookRightDur = 1500;
-  const backCenterDur = 750;
-  const zoomOutDur = 450;
-  const pauseDur = 300;
-
-  const rightEnd = lookRightDur;
-  const centerEnd = rightEnd + backCenterDur;
-  const zoomEnd = centerEnd + zoomOutDur;
-  const endAll = zoomEnd + pauseDur;
-
-  tz = 1.085;
-
-  if (t < rightEnd) {
-    const p = easeInOut(t / lookRightDur);
-    tx = lerp(0, 12, p);
-  } else if (t < centerEnd) {
-    const p = easeInOut((t - rightEnd) / backCenterDur);
-    tx = lerp(12, 0, p);
-  } else if (t < zoomEnd) {
-    const p = easeInOut((t - centerEnd) / zoomOutDur);
-    tx = 0;
-    tz = lerp(1.085, 1.0, p);
-  } else {
-    tx = 0;
-    tz = 1.0;
-  }
-
-  x = lerp(x, tx, 0.10);
-  y = lerp(y, 0, 0.10);
-  z = lerp(z, tz, 0.10);
-
-  applyWorld();
-
-  if (t < endAll + 60) {
-    raf = requestAnimationFrame(motionLoop);
-  } else {
-    x = 0; y = 0; z = 1.0;
-    applyWorld();
-    cancelAnimationFrame(raf);
-    raf = null;
-  }
-}
+const waves = document.getElementById("waves");
 
 startButton.addEventListener("click", () => {
   startScreen.classList.add("hidden");
   gameScreen.classList.add("visible");
-  fadeInMusic();
 
-  lineIndex = 0;
-  charIndex = 0;
-  isTyping = false;
-  storyActive = false;
-  story.textContent = "";
-  story.classList.remove("visible");
-  choice.classList.remove("visible");
-
-  if (raf) cancelAnimationFrame(raf);
-  raf = null;
-  motionStart = 0;
-
-  x = 0; y = 0; z = 1.085;
-  tx = 0; ty = 0; tz = 1.085;
-  applyWorld();
-
-  setGroggy(true);
-
-  let t = 180;
-  setTimeout(() => setEyelids("open1", 350), t);  t += 430;
-  setTimeout(() => setEyelids("closed", 260), t); t += 330;
-  setTimeout(() => setEyelids("open2", 520), t);
-
-  const blurEndAt = t + 120;
-
-  setTimeout(() => {
-    setGroggy(false);
-    startLookAroundMotion();
-  }, blurEndAt);
-
-  const motionTotal = 1500 + 750 + 450 + 300;
-
-  const titleIn = blurEndAt + motionTotal;
-  const titleOut = titleIn + 4000;
-
-  setTimeout(() => title.classList.add("visible"), titleIn);
-  setTimeout(() => title.classList.remove("visible"), titleOut);
-
-  setTimeout(() => {
-    story.classList.add("visible");
-    storyActive = true;
-    startTypingLine();
-  }, titleOut + 700);
+  waves.volume = 0;
+  waves.play();
+  let v = 0;
+  const fade = setInterval(() => {
+    v += 0.02;
+    waves.volume = Math.min(v, 0.7);
+    if (v >= 0.7) clearInterval(fade);
+  }, 120);
 });
 </script>
+
 </body>
 </html>
