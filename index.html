@@ -104,7 +104,6 @@ html, body {
   pointer-events: none;
 }
 
-/* WORLD wrapper (moves + zooms) */
 .world {
   position: absolute;
   left: 0;
@@ -117,11 +116,10 @@ html, body {
   transform-origin: 50% 50%;
 }
 
-/* waking up blur (applied to .world) */
 .scene-haze {
   filter: blur(0px) saturate(1) brightness(1);
   opacity: 1;
-  transition: filter 900ms ease, opacity 900ms ease;
+  transition: filter 450ms ease, opacity 450ms ease;
 }
 .scene-haze.groggy {
   filter: blur(5px) saturate(0.92) brightness(1.02);
@@ -132,14 +130,13 @@ html, body {
   opacity: 1;
 }
 
-/* vignette stays fixed */
 .vignette {
   position: absolute;
   inset: 0;
   z-index: 9;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 1200ms ease;
+  transition: opacity 450ms ease;
   background: radial-gradient(circle at center,
     rgba(0,0,0,0) 45%,
     rgba(0,0,0,0.25) 80%,
@@ -155,7 +152,7 @@ html, body {
   inset: 0;
   image-rendering: pixelated;
   opacity: 0;
-  transition: opacity 900ms ease;
+  transition: opacity 700ms ease;
   z-index: 20;
   pointer-events: none;
 }
@@ -201,7 +198,7 @@ html, body {
   pointer-events: none;
   overflow: hidden;
   --pct: 0%;
-  --dur: 650ms;
+  --dur: 350ms;
 }
 
 .eyelid {
@@ -313,10 +310,10 @@ function fadeInMusic() {
   music.play();
   let v = 0;
   const fade = setInterval(() => {
-    v += 0.025;
+    v += 0.03;
     music.volume = Math.min(v, 0.9);
     if (v >= 0.9) clearInterval(fade);
-  }, 120);
+  }, 90);
 }
 
 function setEyelids(state, dur) {
@@ -378,14 +375,17 @@ document.addEventListener("click", e => {
   advanceStory();
 });
 
-/* MOTION:
-   Start zoomed in.
-   While blur is active: NO movement.
-   When blur ends: slow look left, slow look right, back to center, then zoom out.
+/*
+Goal: about 3 seconds from blur ending to title appearing.
+We do:
+1) slow look left
+2) slow look right
+3) back to center
+4) zoom out
+All compressed into ~3000ms total (including a tiny pause).
 */
 let raf = null;
 let motionStart = 0;
-let motionActive = false;
 
 let x = 0, y = 0, z = 1;
 let tx = 0, ty = 0, tz = 1;
@@ -401,11 +401,13 @@ function startLookAroundMotion() {
   if (raf) cancelAnimationFrame(raf);
   raf = null;
   motionStart = 0;
-  motionActive = true;
 
-  // start zoomed in, no movement
-  x = 0; y = 0; z = 1.075;
-  tx = 0; ty = 0; tz = 1.075;
+  x = 0;
+  y = 0;
+  z = 1.085;
+  tx = 0;
+  ty = 0;
+  tz = 1.085;
   applyWorld();
 
   raf = requestAnimationFrame(motionLoop);
@@ -415,19 +417,19 @@ function motionLoop(now) {
   if (!motionStart) motionStart = now;
   const t = now - motionStart;
 
-  // timeline (ms)
-  const lookLeftDur = 2200;
-  const lookRightDur = 2200;
-  const backCenterDur = 1200;
-  const zoomOutDur = 1200;
+  const lookLeftDur = 900;
+  const lookRightDur = 900;
+  const backCenterDur = 450;
+  const zoomOutDur = 450;
+  const pauseDur = 300;
 
   const leftEnd = lookLeftDur;
   const rightEnd = leftEnd + lookRightDur;
   const centerEnd = rightEnd + backCenterDur;
   const zoomEnd = centerEnd + zoomOutDur;
+  const endAll = zoomEnd + pauseDur;
 
-  // keep same zoom until zoom phase
-  tz = 1.075;
+  tz = 1.085;
 
   if (t < leftEnd) {
     const p = easeInOut(t / lookLeftDur);
@@ -441,25 +443,23 @@ function motionLoop(now) {
   } else if (t < zoomEnd) {
     const p = easeInOut((t - centerEnd) / zoomOutDur);
     tx = 0;
-    tz = lerp(1.075, 1.0, p);
+    tz = lerp(1.085, 1.0, p);
   } else {
-    tx = 0; tz = 1.0;
+    tx = 0;
+    tz = 1.0;
   }
 
-  // smooth follow (gentle, cinematic)
-  x = lerp(x, tx, 0.07);
-  y = lerp(y, 0, 0.07);
-  z = lerp(z, tz, 0.07);
+  x = lerp(x, tx, 0.10);
+  y = lerp(y, 0, 0.10);
+  z = lerp(z, tz, 0.10);
 
   applyWorld();
 
-  if (t < zoomEnd + 80) {
+  if (t < endAll + 60) {
     raf = requestAnimationFrame(motionLoop);
   } else {
-    // lock exact
     x = 0; y = 0; z = 1.0;
     applyWorld();
-    motionActive = false;
     cancelAnimationFrame(raf);
     raf = null;
   }
@@ -470,7 +470,6 @@ startButton.addEventListener("click", () => {
   gameScreen.classList.add("visible");
   fadeInMusic();
 
-  // Reset story state
   lineIndex = 0;
   charIndex = 0;
   isTyping = false;
@@ -479,40 +478,34 @@ startButton.addEventListener("click", () => {
   story.classList.remove("visible");
   choice.classList.remove("visible");
 
-  // Reset motion
   if (raf) cancelAnimationFrame(raf);
   raf = null;
   motionStart = 0;
-  motionActive = false;
 
-  // Start zoomed in and groggy blur, but NO movement yet
-  x = 0; y = 0; z = 1.075;
-  tx = 0; ty = 0; tz = 1.075;
+  x = 0; y = 0; z = 1.085;
+  tx = 0; ty = 0; tz = 1.085;
   applyWorld();
 
   setGroggy(true);
 
-  // TWO BLINKS
-  let t = 280;
-  setTimeout(() => setEyelids("open1", 650), t);  t += 820;
-  setTimeout(() => setEyelids("closed", 450), t); t += 620;
-  setTimeout(() => setEyelids("open2", 1000), t);
+  // TWO BLINKS, sped up
+  let t = 180;
+  setTimeout(() => setEyelids("open1", 350), t);  t += 430;
+  setTimeout(() => setEyelids("closed", 260), t); t += 330;
+  setTimeout(() => setEyelids("open2", 520), t);
 
-  // Clear blur shortly after final open begins,
-  // and START the look-around motion exactly when blur ends.
-  const blurEndAt = t + 220;
+  // Blur ends soon after final open starts, then we begin the look motion
+  const blurEndAt = t + 120;
+
   setTimeout(() => {
     setGroggy(false);
     startLookAroundMotion();
   }, blurEndAt);
 
-  // Title timing:
-  // look-around motion total = 2200 + 2200 + 1200 + 1200 = 6800ms
-  // add a small pause after zoom out finishes
-  const motionTotal = 6800;
-  const pauseAfterMotion = 900;
+  // Motion total is 3000ms from blur end, title appears immediately after
+  const motionTotal = 900 + 900 + 450 + 450 + 300;
 
-  const titleIn = blurEndAt + motionTotal + pauseAfterMotion;
+  const titleIn = blurEndAt + motionTotal;
   const titleOut = titleIn + 4000;
 
   setTimeout(() => title.classList.add("visible"), titleIn);
