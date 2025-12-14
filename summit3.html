@@ -60,11 +60,11 @@ body { touch-action: manipulation; }
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* Story (same system as start2) */
+/* Story */
 .story {
   position: absolute;
   left: 50%;
-  bottom: 180px; /* tune if needed */
+  bottom: 180px;          /* matches your start2 tweak vibe */
   transform: translateX(-50%);
   width: 900px;
   font-family: "Silkscreen";
@@ -130,17 +130,26 @@ body { touch-action: manipulation; }
   transform-origin: center center;
 }
 
-/* Mushroom overlay (transparent cutout PNG) */
-.mushroom {
+.choice-link:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.5);
+  outline-offset: 6px;
+}
+
+/* Mushroom overlay (clickable) */
+.mushroom-link {
+  position: absolute;
+  inset: 0;
+  z-index: 40;           /* above frame + story, below eyelids (none here) */
+  display: block;
+}
+.mushroom-link img {
   position: absolute;
   left: 0;
   top: 0;
   width: 1920px;
   height: 1080px;
-  z-index: 40;
   image-rendering: pixelated;
-  cursor: pointer;
-  pointer-events: auto;
+  pointer-events: none;  /* link handles click, not the img */
 }
 
 /* White abduction flash */
@@ -150,10 +159,22 @@ body { touch-action: manipulation; }
   background: white;
   opacity: 0;
   pointer-events: none;
-  z-index: 90;
-  transition: opacity 250ms ease;
+  z-index: 80;
+  transition: opacity 180ms ease;
 }
 .flash.on { opacity: 1; }
+
+/* slight glitch shake when abducted */
+.shake {
+  animation: shake 350ms ease-in-out 1;
+}
+@keyframes shake {
+  0%   { transform: translate(-50%, -50%) scale(var(--s,1)); }
+  15%  { transform: translate(calc(-50% + 6px), calc(-50% - 2px)) scale(var(--s,1)); }
+  35%  { transform: translate(calc(-50% - 5px), calc(-50% + 3px)) scale(var(--s,1)); }
+  60%  { transform: translate(calc(-50% + 4px), calc(-50% + 1px)) scale(var(--s,1)); }
+  100% { transform: translate(-50%, -50%) scale(var(--s,1)); }
+}
 </style>
 </head>
 
@@ -166,27 +187,29 @@ body { touch-action: manipulation; }
       <img class="layer scene" src="summit3i.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <!-- Transparent mushroom cutout overlay -->
-      <img class="mushroom" id="mushroom" src="mushroom.png" alt="">
+      <!-- Mushroom overlay (ONLY this should trigger alien1.html) -->
+      <a class="mushroom-link" id="mushroomLink" href="alien1.html" aria-label="Mushroom">
+        <img src="mushroom.png" alt="">
+      </a>
 
       <div class="story" id="story" aria-label="Story text"></div>
 
       <div class="choices" id="choices">
-        <a class="choice-link" href="end.html">
+        <a class="choice-link" id="btnBreath" href="end.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Take a deep breath</span>
           </div>
         </a>
 
-        <a class="choice-link" href="end.html">
+        <a class="choice-link" id="btnEyes" href="end.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Close your eyes</span>
           </div>
         </a>
 
-        <a class="choice-link" href="end.html">
+        <a class="choice-link" id="btnThink" href="end.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Sit down and think</span>
@@ -199,8 +222,8 @@ body { touch-action: manipulation; }
     </div>
   </div>
 
-  <!-- Persistent ambience -->
-  <audio id="waves" src="waves.mp3" preload="auto" loop></audio>
+  <!-- Persistent ambience: wind continues from uphill1.html -->
+  <audio id="wind" src="wind.mp3" preload="auto" loop></audio>
 
 </div>
 
@@ -216,32 +239,33 @@ window.addEventListener("keydown", e => {
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.setProperty("--s", scale);
   stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
 }
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Waves persistence */
-const waves = document.getElementById("waves");
-const WAVE_TIME_KEY = "sts_waves_time_v1";
-const WAVE_VOL_KEY  = "sts_waves_vol_v1";
+/* Wind persistence (Option B, same pattern as waves, just wind) */
+const wind = document.getElementById("wind");
+const WIND_TIME_KEY = "sts_wind_time_v1";
+const WIND_VOL_KEY  = "sts_wind_vol_v1";
 
 function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
-function restoreWaves() {
-  const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
-  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
+function restoreWind() {
+  const savedVol = parseFloat(localStorage.getItem(WIND_VOL_KEY));
+  wind.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
 
-  const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
+  const savedT = parseFloat(localStorage.getItem(WIND_TIME_KEY));
   if (Number.isFinite(savedT) && savedT > 0) {
-    try { waves.currentTime = savedT; } catch (_) {}
+    try { wind.currentTime = savedT; } catch (_) {}
   }
 
-  const p = waves.play();
+  const p = wind.play();
   if (p && typeof p.catch === "function") {
     p.catch(() => {
       const resume = () => {
-        waves.play().catch(() => {});
+        wind.play().catch(() => {});
         document.removeEventListener("click", resume, true);
       };
       document.addEventListener("click", resume, true);
@@ -249,40 +273,40 @@ function restoreWaves() {
   }
 }
 
-function startSavingWaves() {
+function startSavingWind() {
   setInterval(() => {
-    if (!waves.paused && Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+    if (!wind.paused && Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
     }
   }, 250);
 
   document.addEventListener("visibilitychange", () => {
-    if (Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+    if (Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
     }
   });
 
   window.addEventListener("beforeunload", () => {
-    if (Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+    if (Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
     }
   });
 }
 
-waves.addEventListener("canplay", () => {
-  const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
+wind.addEventListener("canplay", () => {
+  const savedT = parseFloat(localStorage.getItem(WIND_TIME_KEY));
   if (Number.isFinite(savedT) && savedT > 0) {
-    try { waves.currentTime = savedT; } catch (_) {}
+    try { wind.currentTime = savedT; } catch (_) {}
   }
 }, { once:true });
 
-restoreWaves();
-startSavingWaves();
+restoreWind();
+startSavingWind();
 
-/* Story: one line per click (same behavior as before) */
+/* Story: click anywhere to advance line-by-line (BUT DO NOT hijack mushroom or buttons) */
 const story = document.getElementById("story");
 const choices = document.getElementById("choices");
 
@@ -325,42 +349,57 @@ function advanceStory() {
     if (lineIndex === storyLines.length - 1) choices.classList.add("visible");
     return;
   }
-
   if (lineIndex < storyLines.length - 1) {
     lineIndex++;
     startTypingLine();
   }
 }
 
-/* Mushroom abduction */
-const mushroom = document.getElementById("mushroom");
-const flash = document.getElementById("flash");
-
-mushroom.addEventListener("click", (e) => {
-  e.preventDefault();
-  e.stopPropagation(); // IMPORTANT: stops the global click from also advancing text
-
-  flash.classList.add("on");
-  setTimeout(() => {
-    flash.classList.remove("on");
-    window.location.href = "alien1.html";
-  }, 420);
-});
-
-/* Click ANYWHERE to advance, BUT ignore clicks on buttons + mushroom */
 document.addEventListener("click", (e) => {
-  if (e.target.closest(".choice-link")) return;
-  if (e.target.closest("#mushroom")) return; // IMPORTANT GUARD
+  if (e.target.closest("#mushroomLink")) return;   // don't hijack mushroom
+  if (e.target.closest(".choice-link")) return;    // don't hijack buttons
   advanceStory();
 });
 
-/* Start story immediately */
+/* Show story immediately */
 story.classList.add("visible");
 startTypingLine();
 
-/* Local storage flags for ending logic can be set here if you want:
-   e.g. localStorage.setItem("sts_reached_summit3_v1","1");
-*/
+/* Ending stats flags (adjust these names if you already picked different ones) */
+const END_STAT_KEY = "sts_end_stat_v1";  // end.html reads this
+
+document.getElementById("btnBreath").addEventListener("click", () => {
+  localStorage.setItem(END_STAT_KEY, "Comfort");
+});
+document.getElementById("btnEyes").addEventListener("click", () => {
+  localStorage.setItem(END_STAT_KEY, "Insight");
+});
+document.getElementById("btnThink").addEventListener("click", () => {
+  localStorage.setItem(END_STAT_KEY, "Resolve");
+});
+
+/* Mushroom abduction effect: white flash + quick shake, then go to alien1.html */
+const mushroomLink = document.getElementById("mushroomLink");
+const flash = document.getElementById("flash");
+
+mushroomLink.addEventListener("click", (e) => {
+  e.preventDefault();
+
+  // mark alien path (end.html can optionally read this)
+  localStorage.setItem("sts_alien_seen_v1", "1");
+
+  // flash + shake
+  flash.classList.add("on");
+  stageWrapper.classList.add("shake");
+
+  setTimeout(() => {
+    flash.classList.remove("on");
+  }, 220);
+
+  setTimeout(() => {
+    window.location.href = mushroomLink.href;
+  }, 420);
+});
 </script>
 </body>
 </html>
