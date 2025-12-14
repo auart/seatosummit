@@ -93,7 +93,7 @@ body { touch-action: manipulation; }
   display: inline-block;
 }
 .button img {
-  width: 520px;
+  width: 420px;
   image-rendering: pixelated;
   display: block;
 }
@@ -103,11 +103,10 @@ body { touch-action: manipulation; }
   display: grid;
   place-items: center;
   font-family: "Press Start 2P";
-  font-size: 20px;
+  font-size: 22px;
   color: black;
   pointer-events: none;
   text-align: center;
-  padding: 0 14px;
   line-height: 1.05;
 }
 
@@ -115,15 +114,16 @@ body { touch-action: manipulation; }
 .actions {
   position: absolute;
   left: 50%;
-  bottom: 190px;                 /* tweak this number if needed */
-  transform: translateX(-50%) scale(0.9);
-  transform-origin: center center;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
   z-index: 30;
   opacity: 0;
   transition: opacity 700ms ease;
 }
 
-.actions.visible { opacity: 1; }
+.actions.visible {
+  opacity: 1;
+}
 
 .action-link {
   text-decoration: none;
