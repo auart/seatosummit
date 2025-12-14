@@ -60,11 +60,11 @@ body { touch-action: manipulation; }
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* Story */
+/* Story (same system as start2) */
 .story {
   position: absolute;
   left: 50%;
-  bottom: 180px; /* match your Start2 “looks good” */
+  bottom: 180px; /* tune if needed */
   transform: translateX(-50%);
   width: 900px;
   font-family: "Silkscreen";
@@ -130,67 +130,30 @@ body { touch-action: manipulation; }
   transform-origin: center center;
 }
 
-/* Mushroom overlay (clickable) */
+/* Mushroom overlay (transparent cutout PNG) */
 .mushroom {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 1920px;
-  height: 1080px;
-  transform: translate(-50%, -50%);
-  z-index: 22; /* above scene, below story/buttons */
-  pointer-events: auto;
-  cursor: pointer;
-  user-select: none;
-}
-
-.mushroom img {
   position: absolute;
   left: 0;
   top: 0;
   width: 1920px;
   height: 1080px;
+  z-index: 40;
   image-rendering: pixelated;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
-/* Abduction effects */
-.whiteout {
+/* White abduction flash */
+.flash {
   position: absolute;
   inset: 0;
   background: white;
   opacity: 0;
   pointer-events: none;
   z-index: 90;
+  transition: opacity 250ms ease;
 }
-
-.glitch {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 89;
-  opacity: 0;
-  mix-blend-mode: screen;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      rgba(255,255,255,0.0) 0px,
-      rgba(255,255,255,0.0) 6px,
-      rgba(255,255,255,0.18) 7px
-    );
-}
-
-/* quick jitter class */
-.jitter {
-  animation: jitter 220ms linear infinite;
-}
-@keyframes jitter {
-  0% { transform: translate3d(0,0,0) }
-  20% { transform: translate3d(2px,-1px,0) }
-  40% { transform: translate3d(-2px,1px,0) }
-  60% { transform: translate3d(1px,2px,0) }
-  80% { transform: translate3d(-1px,-2px,0) }
-  100% { transform: translate3d(0,0,0) }
-}
+.flash.on { opacity: 1; }
 </style>
 </head>
 
@@ -198,34 +161,32 @@ body { touch-action: manipulation; }
 <div class="app">
 
   <div class="stage-wrapper" id="stageWrapper">
-    <div class="stage" id="stage">
+    <div class="stage">
 
-      <img class="layer scene" src="summit3i.png" alt="">
+      <img class="layer scene" src="summit3.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <!-- Mushroom overlay -->
-      <div class="mushroom" id="mushroom" aria-label="Mushroom">
-        <img src="mushroom.png" alt="">
-      </div>
+      <!-- Transparent mushroom cutout overlay -->
+      <img class="mushroom" id="mushroom" src="mushroom.png" alt="">
 
       <div class="story" id="story" aria-label="Story text"></div>
 
       <div class="choices" id="choices">
-        <a class="choice-link" id="btnBreath" href="end.html">
+        <a class="choice-link" href="end.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Take a deep breath</span>
           </div>
         </a>
 
-        <a class="choice-link" id="btnClose" href="end.html">
+        <a class="choice-link" href="end.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Close your eyes</span>
           </div>
         </a>
 
-        <a class="choice-link" id="btnThink" href="end.html">
+        <a class="choice-link" href="end.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Sit down and think</span>
@@ -233,11 +194,13 @@ body { touch-action: manipulation; }
         </a>
       </div>
 
-      <div class="glitch" id="glitch"></div>
-      <div class="whiteout" id="whiteout"></div>
+      <div class="flash" id="flash"></div>
 
     </div>
   </div>
+
+  <!-- Persistent ambience -->
+  <audio id="waves" src="waves.mp3" preload="auto" loop></audio>
 
 </div>
 
@@ -258,7 +221,68 @@ function scaleStage() {
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Story: click anywhere to advance line-by-line */
+/* Waves persistence */
+const waves = document.getElementById("waves");
+const WAVE_TIME_KEY = "sts_waves_time_v1";
+const WAVE_VOL_KEY  = "sts_waves_vol_v1";
+
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+function restoreWaves() {
+  const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
+  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
+
+  const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
+  if (Number.isFinite(savedT) && savedT > 0) {
+    try { waves.currentTime = savedT; } catch (_) {}
+  }
+
+  const p = waves.play();
+  if (p && typeof p.catch === "function") {
+    p.catch(() => {
+      const resume = () => {
+        waves.play().catch(() => {});
+        document.removeEventListener("click", resume, true);
+      };
+      document.addEventListener("click", resume, true);
+    });
+  }
+}
+
+function startSavingWaves() {
+  setInterval(() => {
+    if (!waves.paused && Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+    }
+  }, 250);
+
+  document.addEventListener("visibilitychange", () => {
+    if (Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if (Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+    }
+  });
+}
+
+waves.addEventListener("canplay", () => {
+  const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
+  if (Number.isFinite(savedT) && savedT > 0) {
+    try { waves.currentTime = savedT; } catch (_) {}
+  }
+}, { once:true });
+
+restoreWaves();
+startSavingWaves();
+
+/* Story: one line per click (same behavior as before) */
 const story = document.getElementById("story");
 const choices = document.getElementById("choices");
 
@@ -308,104 +332,35 @@ function advanceStory() {
   }
 }
 
-document.addEventListener("click", (e) => {
-  if (e.target.closest(".choice-link")) return;
-  if (e.target.closest("#mushroom")) return;
-  advanceStory();
-});
-
-story.classList.add("visible");
-startTypingLine();
-
-/* Local storage: ending + path logging (lightweight, safe defaults) */
-const STS_ENDING_KEY = "sts_ending_key_v1";     // end.html reads this
-const STS_ALIEN_KEY  = "sts_alien_trigger_v1";  // mark alien seen/triggered
-const STS_LOG_KEY    = "sts_log_v1";            // optional debugging log
-
-function logEvent(type, data) {
-  try {
-    const raw = localStorage.getItem(STS_LOG_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    arr.push({ t: Date.now(), type, ...data });
-    localStorage.setItem(STS_LOG_KEY, JSON.stringify(arr));
-  } catch (_) {}
-}
-
-/* For now, pick ending based on whatever you’re already tracking.
-   If you don’t have points wired yet, this still works and defaults.
-*/
-function computeEndingKey() {
-  // Example expected keys you might already be setting elsewhere:
-  // sts_courage_v1, sts_wisdom_v1, sts_compassion_v1, sts_comfort_v1
-  const g = (k) => parseInt(localStorage.getItem(k) || "0", 10) || 0;
-
-  const courage = g("sts_courage_v1");
-  const wisdom  = g("sts_wisdom_v1");
-  const comp    = g("sts_compassion_v1");
-  const comfort = g("sts_comfort_v1");
-
-  // Rare ending flag you can set when they do everything:
-  const rare = localStorage.getItem("sts_rare_v1") === "1";
-
-  if (rare) return "rare";
-  // Simple heuristic placeholder (swap later)
-  const max = Math.max(courage, wisdom, comp, comfort);
-  if (max === courage) return "courage";
-  if (max === wisdom) return "wisdom";
-  if (max === comp) return "compassion";
-  return "comfort";
-}
-
-function setEndingAndGo(choiceName) {
-  const key = computeEndingKey();
-  localStorage.setItem(STS_ENDING_KEY, key);
-  logEvent("summit_choice", { choice: choiceName, ending: key });
-  // let the <a href="end.html"> handle navigation
-}
-
-document.getElementById("btnBreath").addEventListener("click", () => setEndingAndGo("breath"));
-document.getElementById("btnClose").addEventListener("click", () => setEndingAndGo("close"));
-document.getElementById("btnThink").addEventListener("click", () => setEndingAndGo("think"));
-
 /* Mushroom abduction */
 const mushroom = document.getElementById("mushroom");
-const stage = document.getElementById("stage");
-const whiteout = document.getElementById("whiteout");
-const glitch = document.getElementById("glitch");
-
-let abducting = false;
-
-function abductionSequence() {
-  if (abducting) return;
-  abducting = true;
-
-  localStorage.setItem(STS_ALIEN_KEY, "1");
-  logEvent("alien_trigger", { where: "summit3" });
-
-  // quick jitter + glitch ramp
-  glitch.style.opacity = "0.0";
-  stage.classList.add("jitter");
-
-  setTimeout(() => { glitch.style.opacity = "0.25"; }, 80);
-  setTimeout(() => { glitch.style.opacity = "0.55"; }, 180);
-
-  // white flash out
-  setTimeout(() => {
-    whiteout.style.transition = "opacity 420ms ease";
-    whiteout.style.opacity = "1";
-  }, 320);
-
-  // commit navigation
-  setTimeout(() => {
-    window.location.href = "alien1.html";
-  }, 820);
-}
+const flash = document.getElementById("flash");
 
 mushroom.addEventListener("click", (e) => {
   e.preventDefault();
-  e.stopPropagation();
-  abductionSequence();
+  e.stopPropagation(); // IMPORTANT: stops the global click from also advancing text
+
+  flash.classList.add("on");
+  setTimeout(() => {
+    flash.classList.remove("on");
+    window.location.href = "alien1.html";
+  }, 420);
 });
+
+/* Click ANYWHERE to advance, BUT ignore clicks on buttons + mushroom */
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".choice-link")) return;
+  if (e.target.closest("#mushroom")) return; // IMPORTANT GUARD
+  advanceStory();
+});
+
+/* Start story immediately */
+story.classList.add("visible");
+startTypingLine();
+
+/* Local storage flags for ending logic can be set here if you want:
+   e.g. localStorage.setItem("sts_reached_summit3_v1","1");
+*/
 </script>
 </body>
 </html>
