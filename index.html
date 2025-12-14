@@ -116,16 +116,18 @@ html, body {
   transform-origin: 50% 50%;
 }
 
-/* Ocean overlay animation (shift right 13px then back) */
+/* Ocean overlay animation:
+   shift right 13px, scale up a bit, and bias the scale "down" by nudging Y */
 .ocean {
   animation: oceanShift 2800ms ease-in-out infinite;
   will-change: transform;
+  transform-origin: 50% 60%;
 }
 
 @keyframes oceanShift {
-  0%   { transform: translateX(0px); }
-  50%  { transform: translateX(13px); }
-  100% { transform: translateX(0px); }
+  0%   { transform: translate3d(0px, 0px, 0) scale(1); }
+  50%  { transform: translate3d(13px, 6px, 0) scale(1.03); }
+  100% { transform: translate3d(0px, 0px, 0) scale(1); }
 }
 
 .scene-haze {
@@ -388,13 +390,6 @@ document.addEventListener("click", e => {
   advanceStory();
 });
 
-/*
-Intro motion (no left):
-1) slow look right
-2) back to center
-3) zoom out
-~3000ms total
-*/
 let raf = null;
 let motionStart = 0;
 
@@ -494,7 +489,6 @@ startButton.addEventListener("click", () => {
 
   setGroggy(true);
 
-  // TWO BLINKS
   let t = 180;
   setTimeout(() => setEyelids("open1", 350), t);  t += 430;
   setTimeout(() => setEyelids("closed", 260), t); t += 330;
