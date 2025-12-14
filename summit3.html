@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Sea to Summit – The Summit</title>
+<title>Sea to Summit, Summit 3</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,7 +48,8 @@ html, body {
 
 .layer {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
@@ -56,9 +57,10 @@ html, body {
 }
 
 .scene { z-index: 1; }
-.frame { z-index: 10; }
 
-/* Story */
+/* IMPORTANT: border above everything */
+.border { z-index: 60; }
+
 .story {
   position: absolute;
   left: 50%;
@@ -71,14 +73,30 @@ html, body {
   color: black;
   opacity: 0;
   transition: opacity 600ms ease;
-  z-index: 25;
+  z-index: 40;
   padding: 0 50px;
   box-sizing: border-box;
   user-select: none;
 }
 .story.visible { opacity: 1; }
 
-/* Button component */
+/* Small hint to confirm clicks are working */
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: 150px;
+  transform: translateX(-50%);
+  font-family: "Silkscreen";
+  font-size: 18px;
+  color: rgba(0,0,0,0.55);
+  z-index: 41;
+  opacity: 0;
+  transition: opacity 500ms ease;
+  user-select: none;
+  pointer-events: none;
+}
+.hint.visible { opacity: 1; }
+
 .button {
   position: relative;
   cursor: pointer;
@@ -112,14 +130,22 @@ html, body {
   transform: translateX(-50%);
   display: flex;
   gap: 80px;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
   transition: opacity 700ms ease;
-  z-index: 30;
+  z-index: 55;
+  pointer-events: none; /* enabled only when visible */
 }
-.choices.visible { opacity: 1; }
+.choices.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .choice-link {
+  display: block;
   transform: scale(0.84);
+  transform-origin: center center;
   text-decoration: none;
 }
 </style>
@@ -130,10 +156,12 @@ html, body {
 
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
-      <img class="layer scene" src="summit3i.png" alt="">
-      <img class="layer frame" src="stsborder3.png" alt="">
+      <img class="layer scene" src="summit3.png" alt="">
+      <!-- MAKE SURE THIS EXACT FILENAME EXISTS: stsborder3.png -->
+      <img class="layer border" src="stsborder3.png" alt="">
 
       <div class="story" id="story"></div>
+      <div class="hint visible" id="hint">Click anywhere</div>
 
       <div class="choices" id="choices">
         <a class="choice-link" href="end.html">
@@ -157,6 +185,7 @@ html, body {
           </div>
         </a>
       </div>
+
     </div>
   </div>
 
@@ -175,6 +204,7 @@ scaleStage();
 /* Story typing */
 const story = document.getElementById("story");
 const choices = document.getElementById("choices");
+const hint = document.getElementById("hint");
 
 const storyLines = [
   "The light shifts around you, faint and strange, as if the island itself is watching.",
@@ -200,8 +230,10 @@ function startTypingLine() {
     if (charIndex >= current.length) {
       clearInterval(typing);
       isTyping = false;
+
       if (lineIndex === storyLines.length - 1) {
         choices.classList.add("visible");
+        hint.classList.remove("visible");
       }
     }
   }, 24);
@@ -214,6 +246,7 @@ function advanceStory() {
     story.textContent = storyLines[lineIndex];
     if (lineIndex === storyLines.length - 1) {
       choices.classList.add("visible");
+      hint.classList.remove("visible");
     }
     return;
   }
