@@ -1,1 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sea to Summit, Ending</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: black;
+  position: fixed;
+  inset: 0;
+}
+body { touch-action: manipulation; }
+* { overscroll-behavior: none; }
+
+.app {
+  position: fixed;
+  inset: 0;
+  background: black;
+  overflow: hidden;
+}
+
+/* Stage scaling */
+.stage-wrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  width: 1920px;
+  height: 1080px;
+}
+
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+}
+
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* Ending text */
+.story {
+  position: absolute;
+  left: 50%;
+  bottom: 140px;
+  transform: translateX(-50%);
+  width: 1200px;
+
+  font-family: "Silkscreen";
+  font-size: 28px;
+  line-height: 1.25;
+  color: white;
+
+  opacity: 0;
+  transition: opacity 600ms ease;
+  z-index: 25;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  min-height: 130px;
+  padding: 0 40px;
+  box-sizing: border-box;
+
+  text-align: center;
+  user-select: none;
+}
+.story.visible { opacity: 1; }
+
+/* Button */
+.button {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+}
+.button img {
+  width: 520px;
+  image-rendering: pixelated;
+  display: block;
+}
+.button span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: "Press Start 2P";
+  font-size: 20px;
+  color: black;
+  pointer-events: none;
+  text-align: center;
+  padding: 0 14px;
+  line-height: 1.05;
+}
+
+/* Begin Again placement */
+.actions {
+  position: absolute;
+  left: 50%;
+  bottom: 35px;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 700ms ease;
+  z-index: 30;
+}
+.actions.visible { opacity: 1; }
+
+.action-link {
+  text-decoration: none;
+  transform: scale(0.9);
+  transform-origin: center center;
+  display: inline-block;
+}
+
+.action-link:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.5);
+  outline-offset: 6px;
+}
+
+/* White fade (optional, used when restarting, looks clean) */
+.fade {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 999;
+  transition: opacity 450ms ease;
+}
+.fade.on { opacity: 1; }
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <div class="stage-wrapper" id="stageWrapper">
+    <div class="stage">
+      <img class="layer" src="endi.png" alt="">
+
+      <div class="story" id="story" aria-label="Ending text"></div>
+
+      <div class="actions" id="actions">
+        <a class="action-link" href="index.html" id="beginAgain">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Begin Again</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="fade" id="fade"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* HARD scroll lock */
+window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
+window.addEventListener("keydown", e => {
+  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
+});
+
+/* Stage scaling */
+const stageWrapper = document.getElementById("stageWrapper");
+function scaleStage() {
+  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+}
+window.addEventListener("resize", scaleStage);
+scaleStage();
+
+/*
+EDIT THESE IF YOU WANT
+You said you already picked the wording, so paste your final lines here.
+Each ending should be 3 lines max.
+*/
+const ENDINGS = {
+  courage: [
+    "You followed your instincts, even when it hurt to keep moving.",
+    "What challenged you did not break you, it shaped you.",
+    "You step forward now with a steadier kind of courage."
+  ],
+  compassion: [
+    "You noticed what was fragile, and chose to help anyway.",
+    "Kindness changed the shape of your path, quietly but forever.",
+    "You carry that warmth into whatever comes next."
+  ],
+  wisdom: [
+    "You knew when to pause, and when to continue.",
+    "Rest did not stop you, it returned you to yourself.",
+    "You leave the island with clearer eyes."
+  ],
+  curiosity: [
+    "You reached for the unknown, and the unknown answered.",
+    "Not every mystery is meant to be solved, but you listened closely.",
+    "You move on with a brave, open mind."
+  ],
+  comfort: [
+    "You found what was easy to stay inside.",
+    "The island taught you that comfort can be a tide, not a home.",
+    "When you are ready, you will choose forward."
+  ],
+  insight: [
+    "You walked the shortest way, and felt what you missed.",
+    "Knowing the path is not the same as knowing the world.",
+    "Next time, you may look a little wider."
+  ],
+  rare: [
+    "You walked every edge of the island, and the island remembered you.",
+    "Each choice left a mark, each lesson returned as something new.",
+    "This time, you do not begin again, you continue."
+  ]
+};
+
+/*
+ENDING PICK LOGIC
+This tries to work with either points or simple flags.
+If you already store points, set them using these keys:
+sts_courage, sts_compassion, sts_wisdom, sts_curiosity, sts_comfort, sts_insight
+
+Rare ending checks these completion flags (set them wherever appropriate):
+sts_done_beach, sts_done_rocky, sts_done_waterfall, sts_done_cave, sts_done_summit
+*/
+function num(key) {
+  const v = parseFloat(localStorage.getItem(key));
+  return Number.isFinite(v) ? v : 0;
+}
+function yes(key) {
+  return localStorage.getItem(key) === "1";
+}
+
+function pickEndingKey() {
+  const rare = yes("sts_done_beach") && yes("sts_done_rocky") && yes("sts_done_waterfall") && yes("sts_done_cave") && yes("sts_done_summit");
+  if (rare) return "rare";
+
+  const scores = {
+    courage: num("sts_courage"),
+    compassion: num("sts_compassion"),
+    wisdom: num("sts_wisdom"),
+    curiosity: num("sts_curiosity"),
+    comfort: num("sts_comfort"),
+    insight: num("sts_insight")
+  };
+
+  // If you have not wired points yet, fall back to a sane default.
+  const total = Object.values(scores).reduce((a,b) => a + b, 0);
+  if (total <= 0) return "insight";
+
+  let bestKey = "insight";
+  let bestVal = -Infinity;
+  for (const k in scores) {
+    if (scores[k] > bestVal) {
+      bestVal = scores[k];
+      bestKey = k;
+    }
+  }
+  return bestKey;
+}
+
+/* Type line by line on click */
+const story = document.getElementById("story");
+const actions = document.getElementById("actions");
+
+const endingKey = pickEndingKey();
+const storyLines = ENDINGS[endingKey] || ENDINGS.insight;
+
+let lineIndex = 0;
+let charIndex = 0;
+let typing = null;
+let isTyping = false;
+
+function startTypingLine() {
+  clearInterval(typing);
+  isTyping = true;
+  charIndex = 0;
+
+  // Show previously completed lines, then type the current line
+  const done = storyLines.slice(0, lineIndex).join("\n");
+  story.textContent = done ? (done + "\n") : "";
+
+  const current = storyLines[lineIndex];
+
+  typing = setInterval(() => {
+    charIndex++;
+    const typed = current.slice(0, charIndex);
+    story.textContent = (done ? (done + "\n") : "") + typed;
+
+    if (charIndex >= current.length) {
+      clearInterval(typing);
+      isTyping = false;
+
+      if (lineIndex === storyLines.length - 1) {
+        actions.classList.add("visible");
+      }
+    }
+  }, 22);
+}
+
+function advanceStory() {
+  if (isTyping) {
+    clearInterval(typing);
+    isTyping = false;
+
+    const done = storyLines.slice(0, lineIndex).join("\n");
+    const current = storyLines[lineIndex];
+    story.textContent = (done ? (done + "\n") : "") + current;
+
+    if (lineIndex === storyLines.length - 1) actions.classList.add("visible");
+    return;
+  }
+
+  if (lineIndex < storyLines.length - 1) {
+    lineIndex++;
+    startTypingLine();
+  }
+}
+
+document.addEventListener("click", (e) => {
+  // Do not hijack the Begin Again button click
+  if (e.target.closest("#beginAgain")) return;
+  advanceStory();
+});
+
+/* Show immediately */
+story.classList.add("visible");
+startTypingLine();
+
+/* Begin Again clears memory */
+const beginAgain = document.getElementById("beginAgain");
+const fade = document.getElementById("fade");
+
+beginAgain.addEventListener("click", (e) => {
+  e.preventDefault();
+
+  // Fade to white, feels like a clean reset
+  fade.classList.add("on");
+
+  // Clear only your game keys (anything starting with sts_)
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith("sts_")) localStorage.removeItem(k);
+  }
+
+  // Go back to start
+  setTimeout(() => {
+    window.location.href = beginAgain.getAttribute("href");
+  }, 480);
+});
+</script>
+</body>
+</html>
