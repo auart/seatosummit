@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Sea to Summit – The Summit</title>
+<title>Sea to Summit, Summit 3</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,6 +20,7 @@ html, body {
   inset: 0;
 }
 
+body { touch-action: manipulation; }
 * { overscroll-behavior: none; }
 
 .app {
@@ -48,7 +49,8 @@ html, body {
 
 .layer {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
@@ -62,7 +64,7 @@ html, body {
 .story {
   position: absolute;
   left: 50%;
-  bottom: 190px;
+  bottom: 180px; /* match your Start2 “looks good” */
   transform: translateX(-50%);
   width: 900px;
   font-family: "Silkscreen";
@@ -72,7 +74,8 @@ html, body {
   opacity: 0;
   transition: opacity 600ms ease;
   z-index: 25;
-  padding: 0 50px;
+  padding-left: 50px;
+  padding-right: 50px;
   box-sizing: border-box;
   user-select: none;
 }
@@ -82,6 +85,7 @@ html, body {
 .button {
   position: relative;
   cursor: pointer;
+  display: inline-block;
 }
 
 .button img {
@@ -104,7 +108,7 @@ html, body {
   line-height: 1.05;
 }
 
-/* Choices */
+/* Choices row */
 .choices {
   position: absolute;
   left: 50%;
@@ -112,6 +116,8 @@ html, body {
   transform: translateX(-50%);
   display: flex;
   gap: 80px;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
   transition: opacity 700ms ease;
   z-index: 30;
@@ -119,8 +125,71 @@ html, body {
 .choices.visible { opacity: 1; }
 
 .choice-link {
-  transform: scale(0.84);
   text-decoration: none;
+  transform: scale(0.84);
+  transform-origin: center center;
+}
+
+/* Mushroom overlay (clickable) */
+.mushroom {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform: translate(-50%, -50%);
+  z-index: 22; /* above scene, below story/buttons */
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+}
+
+.mushroom img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  image-rendering: pixelated;
+}
+
+/* Abduction effects */
+.whiteout {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 90;
+}
+
+.glitch {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 89;
+  opacity: 0;
+  mix-blend-mode: screen;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255,255,255,0.0) 0px,
+      rgba(255,255,255,0.0) 6px,
+      rgba(255,255,255,0.18) 7px
+    );
+}
+
+/* quick jitter class */
+.jitter {
+  animation: jitter 220ms linear infinite;
+}
+@keyframes jitter {
+  0% { transform: translate3d(0,0,0) }
+  20% { transform: translate3d(2px,-1px,0) }
+  40% { transform: translate3d(-2px,1px,0) }
+  60% { transform: translate3d(1px,2px,0) }
+  80% { transform: translate3d(-1px,-2px,0) }
+  100% { transform: translate3d(0,0,0) }
 }
 </style>
 </head>
@@ -129,40 +198,57 @@ html, body {
 <div class="app">
 
   <div class="stage-wrapper" id="stageWrapper">
-    <div class="stage">
+    <div class="stage" id="stage">
+
       <img class="layer scene" src="summit3i.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <div class="story" id="story"></div>
+      <!-- Mushroom overlay -->
+      <div class="mushroom" id="mushroom" aria-label="Mushroom">
+        <img src="mushroom.png" alt="">
+      </div>
+
+      <div class="story" id="story" aria-label="Story text"></div>
 
       <div class="choices" id="choices">
-        <a class="choice-link" href="end.html">
+        <a class="choice-link" id="btnBreath" href="end.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Take a deep breath</span>
           </div>
         </a>
 
-        <a class="choice-link" href="end.html">
+        <a class="choice-link" id="btnClose" href="end.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Close your eyes</span>
           </div>
         </a>
 
-        <a class="choice-link" href="end.html">
+        <a class="choice-link" id="btnThink" href="end.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Sit down and think</span>
           </div>
         </a>
       </div>
+
+      <div class="glitch" id="glitch"></div>
+      <div class="whiteout" id="whiteout"></div>
+
     </div>
   </div>
 
 </div>
 
 <script>
+/* HARD scroll lock */
+window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
+window.addEventListener("keydown", e => {
+  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
+});
+
 /* Stage scaling */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -172,7 +258,7 @@ function scaleStage() {
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Story typing */
+/* Story: click anywhere to advance line-by-line */
 const story = document.getElementById("story");
 const choices = document.getElementById("choices");
 
@@ -212,9 +298,7 @@ function advanceStory() {
     clearInterval(typing);
     isTyping = false;
     story.textContent = storyLines[lineIndex];
-    if (lineIndex === storyLines.length - 1) {
-      choices.classList.add("visible");
-    }
+    if (lineIndex === storyLines.length - 1) choices.classList.add("visible");
     return;
   }
 
@@ -226,13 +310,102 @@ function advanceStory() {
 
 document.addEventListener("click", (e) => {
   if (e.target.closest(".choice-link")) return;
+  if (e.target.closest("#mushroom")) return;
   advanceStory();
 });
 
-/* Start immediately */
 story.classList.add("visible");
 startTypingLine();
-</script>
 
+/* Local storage: ending + path logging (lightweight, safe defaults) */
+const STS_ENDING_KEY = "sts_ending_key_v1";     // end.html reads this
+const STS_ALIEN_KEY  = "sts_alien_trigger_v1";  // mark alien seen/triggered
+const STS_LOG_KEY    = "sts_log_v1";            // optional debugging log
+
+function logEvent(type, data) {
+  try {
+    const raw = localStorage.getItem(STS_LOG_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    arr.push({ t: Date.now(), type, ...data });
+    localStorage.setItem(STS_LOG_KEY, JSON.stringify(arr));
+  } catch (_) {}
+}
+
+/* For now, pick ending based on whatever you’re already tracking.
+   If you don’t have points wired yet, this still works and defaults.
+*/
+function computeEndingKey() {
+  // Example expected keys you might already be setting elsewhere:
+  // sts_courage_v1, sts_wisdom_v1, sts_compassion_v1, sts_comfort_v1
+  const g = (k) => parseInt(localStorage.getItem(k) || "0", 10) || 0;
+
+  const courage = g("sts_courage_v1");
+  const wisdom  = g("sts_wisdom_v1");
+  const comp    = g("sts_compassion_v1");
+  const comfort = g("sts_comfort_v1");
+
+  // Rare ending flag you can set when they do everything:
+  const rare = localStorage.getItem("sts_rare_v1") === "1";
+
+  if (rare) return "rare";
+  // Simple heuristic placeholder (swap later)
+  const max = Math.max(courage, wisdom, comp, comfort);
+  if (max === courage) return "courage";
+  if (max === wisdom) return "wisdom";
+  if (max === comp) return "compassion";
+  return "comfort";
+}
+
+function setEndingAndGo(choiceName) {
+  const key = computeEndingKey();
+  localStorage.setItem(STS_ENDING_KEY, key);
+  logEvent("summit_choice", { choice: choiceName, ending: key });
+  // let the <a href="end.html"> handle navigation
+}
+
+document.getElementById("btnBreath").addEventListener("click", () => setEndingAndGo("breath"));
+document.getElementById("btnClose").addEventListener("click", () => setEndingAndGo("close"));
+document.getElementById("btnThink").addEventListener("click", () => setEndingAndGo("think"));
+
+/* Mushroom abduction */
+const mushroom = document.getElementById("mushroom");
+const stage = document.getElementById("stage");
+const whiteout = document.getElementById("whiteout");
+const glitch = document.getElementById("glitch");
+
+let abducting = false;
+
+function abductionSequence() {
+  if (abducting) return;
+  abducting = true;
+
+  localStorage.setItem(STS_ALIEN_KEY, "1");
+  logEvent("alien_trigger", { where: "summit3" });
+
+  // quick jitter + glitch ramp
+  glitch.style.opacity = "0.0";
+  stage.classList.add("jitter");
+
+  setTimeout(() => { glitch.style.opacity = "0.25"; }, 80);
+  setTimeout(() => { glitch.style.opacity = "0.55"; }, 180);
+
+  // white flash out
+  setTimeout(() => {
+    whiteout.style.transition = "opacity 420ms ease";
+    whiteout.style.opacity = "1";
+  }, 320);
+
+  // commit navigation
+  setTimeout(() => {
+    window.location.href = "alien1.html";
+  }, 820);
+}
+
+mushroom.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  abductionSequence();
+});
+</script>
 </body>
 </html>
