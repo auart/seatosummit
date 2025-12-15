@@ -21,7 +21,11 @@ html, body {
 }
 
 body { touch-action: manipulation; }
-* { overscroll-behavior: none; }
+* {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
 
 .app {
   position: fixed;
@@ -70,7 +74,7 @@ body { touch-action: manipulation; }
   transform: translateX(-50%);
   width: 900px;
 
-  font-family: "Silkscreen";
+  font-family: Silkscreen;
   font-size: 26px;
   line-height: 1.25;
   color: black;
@@ -82,8 +86,6 @@ body { touch-action: manipulation; }
   min-height: 96px;
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
-
-  user-select: none;
 }
 .story.visible { opacity: 1; }
 
@@ -117,18 +119,13 @@ body { touch-action: manipulation; }
   letter-spacing: -1px;
 }
 
-/* Continue button (text advance) */
+/* Continue button */
 .continue-wrap {
   position: absolute;
   left: 50%;
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
-}
-.continue-wrap.hidden {
-  opacity: 0;
-  pointer-events: none;
-  display: none; /* IMPORTANT: removes overlay so middle choice is clickable */
 }
 
 /* Choices row */
@@ -141,11 +138,16 @@ body { touch-action: manipulation; }
   gap: 20px;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transition: opacity 700ms ease;
   z-index: 30;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 700ms ease;
 }
-.choices.visible { opacity: 1; }
+.choices.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .choice-link {
   text-decoration: none;
@@ -265,13 +267,13 @@ function scaleStage() {
   stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
 }
 window.addEventListener("resize", scaleStage);
+window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
 /* Wind persistence */
 const wind = document.getElementById("wind");
 const WIND_TIME_KEY = "sts_wind_time_v1";
 const WIND_VOL_KEY  = "sts_wind_vol_v1";
-
 function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
 
 function restoreWind() {
@@ -320,20 +322,12 @@ function startSavingWind() {
   });
 }
 
-wind.addEventListener("canplay", () => {
-  const savedT = parseFloat(localStorage.getItem(WIND_TIME_KEY));
-  if (Number.isFinite(savedT) && savedT > 0) {
-    try { wind.currentTime = savedT; } catch (_) {}
-  }
-}, { once:true });
-
 restoreWind();
 startSavingWind();
 
-/* Story: Continue button only */
+/* Story */
 const story = document.getElementById("story");
 const choices = document.getElementById("choices");
-const continueWrap = document.getElementById("continueWrap");
 const btnContinue = document.getElementById("btnContinue");
 
 const storyLines = [
@@ -347,13 +341,14 @@ let charIndex = 0;
 let typing = null;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");
-  continueWrap.style.display = "none"; /* belt and suspenders */
-  choices.classList.add("visible");
+  const cw = document.getElementById("continueWrap");
+  if (cw) cw.remove();                 // KEY FIX: destroy overlay for sure
+  choices.classList.add("visible");    // enables clicks via CSS
 }
 
 function startTypingLine() {
-  clearInterval(typing);
+  if (typing) clearInterval(typing);
+  typing = null;
   charIndex = 0;
   story.textContent = "";
   const current = storyLines[lineIndex];
@@ -361,31 +356,42 @@ function startTypingLine() {
   typing = setInterval(() => {
     charIndex++;
     story.textContent = current.slice(0, charIndex);
+
     if (charIndex >= current.length) {
       clearInterval(typing);
+      typing = null;
+      charIndex = current.length;
       if (lineIndex === storyLines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (charIndex < storyLines[lineIndex].length) {
-    story.textContent = storyLines[lineIndex];
+  const current = storyLines[lineIndex];
+
+  if (typing) {
     clearInterval(typing);
+    typing = null;
+    charIndex = current.length;
+    story.textContent = current;
     if (lineIndex === storyLines.length - 1) showChoices();
     return;
   }
+
   if (lineIndex < storyLines.length - 1) {
     lineIndex++;
     startTypingLine();
+  } else {
+    showChoices();
   }
 }
 
-btnContinue.addEventListener("pointerup", (e) => {
+/* pointerdown = spam-click safe */
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
-});
+}, { passive:false });
 
 /* Show story immediately */
 story.classList.add("visible");
