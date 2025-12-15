@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Sea to Summit, Start 2</title>
+<title>Sea to Summit, Start</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -64,7 +64,7 @@ body { touch-action: manipulation; }
 .story {
   position: absolute;
   left: 50.5%;
-  bottom: 180px;                 /* your adjusted value */
+  bottom: 180px;
   transform: translateX(-50%);
   width: 900px;
 
@@ -77,18 +77,12 @@ body { touch-action: manipulation; }
   transition: opacity 600ms ease;
   z-index: 25;
 
-  /* NEW: lock text to the top */
   display: flex;
   align-items: flex-start;
-  justify-content: flex-start;
-
-  /* NEW: prevent vertical shifting */
   min-height: 96px;
 
-  /* spacing */
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
-
   user-select: none;
 }
 
@@ -142,18 +136,6 @@ body { touch-action: manipulation; }
   transform: scale(0.84);
   transform-origin: center center;
 }
-
-.choice-link.disabled {
-  opacity: 0.35;
-  filter: grayscale(1);
-  pointer-events: none;
-}
-
-/* (optional) tiny cursor polish */
-.choice-link:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5);
-  outline-offset: 6px;
-}
 </style>
 </head>
 
@@ -165,7 +147,7 @@ body { touch-action: manipulation; }
       <img class="layer scene" src="starthome.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <div class="story" id="story" aria-label="Story text"></div>
+      <div class="story" id="story"></div>
 
       <div class="choices" id="choices">
         <a class="choice-link" id="btnBeach" href="beach1.html">
@@ -192,18 +174,13 @@ body { touch-action: manipulation; }
     </div>
   </div>
 
-  <!-- Persistent ambience (Option B) -->
   <audio id="waves" src="waves.mp3" preload="auto" loop></audio>
-
 </div>
 
 <script>
 /* HARD scroll lock */
 window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
 window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
-window.addEventListener("keydown", e => {
-  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
-});
 
 /* Stage scaling */
 const stageWrapper = document.getElementById("stageWrapper");
@@ -214,157 +191,81 @@ function scaleStage() {
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Waves persistence (Option B) */
+/* Audio persistence */
 const waves = document.getElementById("waves");
-const WAVE_TIME_KEY = "sts_waves_time_v1";
-const WAVE_VOL_KEY  = "sts_waves_vol_v1";
+const TIME_KEY = "sts_waves_time_v1";
 
-function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+waves.volume = 0.35;
+waves.play().catch(() => {
+  document.addEventListener("click", () => waves.play(), { once:true });
+});
 
-function restoreWaves() {
-  // default volume (you can tweak per page later)
-  const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
-  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
+setInterval(() => {
+  localStorage.setItem(TIME_KEY, waves.currentTime);
+}, 300);
 
-  const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
-  if (Number.isFinite(savedT) && savedT > 0) {
-    try { waves.currentTime = savedT; } catch (_) {}
-  }
-
-  const p = waves.play();
-  if (p && typeof p.catch === "function") {
-    // If autoplay is blocked, start on next user interaction (first click)
-    p.catch(() => {
-      const resume = () => {
-        waves.play().catch(() => {});
-        document.removeEventListener("click", resume, true);
-      };
-      document.addEventListener("click", resume, true);
-    });
-  }
-}
-
-function startSavingWaves() {
-  // save frequently for smoother continuity across pages
-  setInterval(() => {
-    if (!waves.paused && Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
-    }
-  }, 250);
-
-  // save on tab hide / navigate away
-  document.addEventListener("visibilitychange", () => {
-    if (Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
-    }
-  });
-
-  window.addEventListener("beforeunload", () => {
-    if (Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
-    }
-  });
-}
-
-waves.addEventListener("canplay", () => {
-  // in case currentTime set too early in some browsers
-  const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
-  if (Number.isFinite(savedT) && savedT > 0) {
-    try { waves.currentTime = savedT; } catch (_) {}
-  }
-}, { once:true });
-
-restoreWaves();
-startSavingWaves();
-
-/* Story: click anywhere to advance line-by-line */
+/* Story typing */
 const story = document.getElementById("story");
 const choices = document.getElementById("choices");
 
-const storyLines = [
+const lines = [
   "You take a moment to get your bearings.",
   "To your left, the beach curves along the shoreline.",
   "Ahead, a dense grove of palms blocks the island’s interior.",
   "To your right, dark lava rocks jut into the water."
 ];
 
-let lineIndex = 0;
-let charIndex = 0;
-let typing = null;
-let isTyping = false;
-let storyActive = true;
+let line = 0, char = 0, typing;
 
-function startTypingLine() {
+function typeLine() {
   clearInterval(typing);
-  isTyping = true;
-  charIndex = 0;
   story.textContent = "";
-  const current = storyLines[lineIndex];
+  char = 0;
 
   typing = setInterval(() => {
-    charIndex++;
-    story.textContent = current.slice(0, charIndex);
-    if (charIndex >= current.length) {
+    char++;
+    story.textContent = lines[line].slice(0, char);
+    if (char >= lines[line].length) {
       clearInterval(typing);
-      isTyping = false;
-
-      if (lineIndex === storyLines.length - 1) {
-        choices.classList.add("visible");
-      }
+      if (line === lines.length - 1) choices.classList.add("visible");
     }
   }, 24);
 }
 
-function advanceStory() {
-  if (!storyActive) return;
-
-  if (isTyping) {
-    clearInterval(typing);
-    isTyping = false;
-    story.textContent = storyLines[lineIndex];
-    if (lineIndex === storyLines.length - 1) choices.classList.add("visible");
-    return;
-  }
-
-  if (lineIndex < storyLines.length - 1) {
-    lineIndex++;
-    startTypingLine();
-  }
-}
-
-document.addEventListener("click", (e) => {
-  // don’t hijack clicks on choice buttons
+document.addEventListener("click", e => {
   if (e.target.closest(".choice-link")) return;
-  advanceStory();
+  if (char < lines[line].length) {
+    story.textContent = lines[line];
+    clearInterval(typing);
+    if (line === lines.length - 1) choices.classList.add("visible");
+  } else if (line < lines.length - 1) {
+    line++;
+    typeLine();
+  }
 });
 
-/* Show story immediately */
 story.classList.add("visible");
-startTypingLine();
+typeLine();
 
-/* Visited tracking: disable previously visited paths */
-const btnBeach = document.getElementById("btnBeach");
-const btnPalms = document.getElementById("btnPalms");
-const btnRocks = document.getElementById("btnRocks");
-
-const VIS_BEACH = "sts_visited_beach1_v1";
-const VIS_PALMS = "sts_visited_palms1_v1";
-const VIS_ROCKS = "sts_visited_rocky1_v1";
-
-function applyVisitedState() {
-  if (localStorage.getItem(VIS_BEACH) === "1") btnBeach.classList.add("disabled");
-  if (localStorage.getItem(VIS_PALMS) === "1") btnPalms.classList.add("disabled");
-  if (localStorage.getItem(VIS_ROCKS) === "1") btnRocks.classList.add("disabled");
+/* ---------- SCORING (ONE TIME ONLY) ---------- */
+function addPointsOnce(flag, points) {
+  if (localStorage.getItem(flag) === "1") return;
+  const total = parseInt(localStorage.getItem("sts_points_v1") || "0", 10);
+  localStorage.setItem("sts_points_v1", total + points);
+  localStorage.setItem(flag, "1");
 }
-applyVisitedState();
 
-/* Set visited immediately on click (simplest + reliable) */
-btnBeach.addEventListener("click", () => localStorage.setItem(VIS_BEACH, "1"));
-btnPalms.addEventListener("click", () => localStorage.setItem(VIS_PALMS, "1"));
-btnRocks.addEventListener("click", () => localStorage.setItem(VIS_ROCKS, "1"));
+document.getElementById("btnBeach").addEventListener("click", () => {
+  addPointsOnce("sts_scored_beach_v1", 1);
+});
+
+document.getElementById("btnPalms").addEventListener("click", () => {
+  addPointsOnce("sts_scored_palms_v1", 1);
+});
+
+document.getElementById("btnRocks").addEventListener("click", () => {
+  addPointsOnce("sts_scored_rocks_v1", 1);
+});
 </script>
 </body>
 </html>
