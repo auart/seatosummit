@@ -201,7 +201,10 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
-/* Scale stage */
+/* Prevent weird drag behavior */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
+/* Stage scaling */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
@@ -271,7 +274,7 @@ function startSavingAudio() {
 restoreAudio();
 startSavingAudio();
 
-/* ---------- STORY (Continue button only) ---------- */
+/* ---------- STORY (Continue button only, FIXED) ---------- */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -293,38 +296,53 @@ function showChoices() {
 }
 
 function typeLine() {
-  clearInterval(typing);
+  if (typing) clearInterval(typing);
+  typing = null;
+
   story.textContent = "";
   char = 0;
 
   typing = setInterval(() => {
     char++;
     story.textContent = lines[line].slice(0, char);
+
     if (char >= lines[line].length) {
+      char = lines[line].length;     /* KEY FIX */
       clearInterval(typing);
+      typing = null;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (char < lines[line].length) {
-    story.textContent = lines[line];
+  const currentLen = lines[line].length;
+
+  /* If typing, first tap finishes the current line */
+  if (typing) {
     clearInterval(typing);
+    typing = null;
+    char = currentLen;               /* KEY FIX */
+    story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
   }
+
+  /* If finished line, next tap goes to next line */
   if (line < lines.length - 1) {
     line++;
     typeLine();
+  } else {
+    showChoices();
   }
 }
 
-btnContinue.addEventListener("pointerup", (e) => {
+/* pointerdown makes fast clicks reliable */
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
-});
+}, { passive:false });
 
 /* Start */
 typeLine();
