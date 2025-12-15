@@ -195,7 +195,6 @@ body { touch-action: manipulation; }
     </div>
   </div>
 
-  <!-- Seamless audio -->
   <audio id="waves" src="palms.mp3" preload="auto" loop></audio>
 
 </div>
@@ -211,6 +210,7 @@ function scaleStage() {
   stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
 }
 window.addEventListener("resize", scaleStage);
+window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
 /* ---------- SEAMLESS AUDIO (same track resumes across pages) ---------- */
@@ -274,7 +274,7 @@ function startSavingAudio() {
 restoreAudio();
 startSavingAudio();
 
-/* ---------- STORY (Continue button only, FIXED EARLY-CLICK ISSUE) ---------- */
+/* ---------- STORY (Continue button only, FIXED + DOES NOT BLOCK CHOICES) ---------- */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -292,7 +292,10 @@ let char = 0;
 let typing = null;
 
 function showChoices() {
+  // KEY FIX: disable the whole continue overlay so it can’t intercept clicks
   continueWrap.classList.add("hidden");
+  continueWrap.style.display = "none";
+
   choices.classList.add("visible");
 }
 
@@ -316,7 +319,6 @@ function typeLine() {
 }
 
 function advanceStory() {
-  // If currently typing, finish line instantly (no freezes)
   if (typing) {
     clearInterval(typing);
     typing = null;
@@ -326,7 +328,6 @@ function advanceStory() {
     return;
   }
 
-  // Move to next line
   if (line < lines.length - 1) {
     line++;
     typeLine();
@@ -335,12 +336,17 @@ function advanceStory() {
   }
 }
 
-/* Use pointerdown (more reliable than pointerup when spamming clicks) */
+/* KEY FIX: only listen on the actual continue button, not the wrapper */
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
 }, { passive: false });
+
+/* EXTRA SAFETY: if user clicks a choice, don’t let anything steal it */
+choices.querySelectorAll("a").forEach(a => {
+  a.addEventListener("pointerdown", (e) => e.stopPropagation(), { passive: true });
+});
 
 /* Start */
 story.classList.add("visible");
