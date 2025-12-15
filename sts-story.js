@@ -1,32 +1,27 @@
-// sts-story.js
+function initStory({ lines }) {
+  const story = document.getElementById("story");
+  const continueWrap = document.getElementById("continueWrap");
+  const choices = document.getElementById("choices");
+  const btnContinue = document.getElementById("btnContinue");
 
-export function initStory({
-  lines,
-  storyEl,
-  continueBtn,
-  continueWrap,
-  choicesEl,
-  typeSpeed = 24
-}) {
   let line = 0;
   let char = 0;
   let typing = null;
 
   function showChoices() {
     continueWrap.classList.add("hidden");
-    choicesEl.classList.add("visible");
+    choices.classList.add("visible");
   }
 
   function typeLine() {
     if (typing) clearInterval(typing);
     typing = null;
-
-    storyEl.textContent = "";
+    story.textContent = "";
     char = 0;
 
     typing = setInterval(() => {
       char++;
-      storyEl.textContent = lines[line].slice(0, char);
+      story.textContent = lines[line].slice(0, char);
 
       if (char >= lines[line].length) {
         char = lines[line].length;
@@ -34,7 +29,7 @@ export function initStory({
         typing = null;
         if (line === lines.length - 1) showChoices();
       }
-    }, typeSpeed);
+    }, 24);
   }
 
   function advanceStory() {
@@ -42,7 +37,7 @@ export function initStory({
       clearInterval(typing);
       typing = null;
       char = lines[line].length;
-      storyEl.textContent = lines[line];
+      story.textContent = lines[line];
       if (line === lines.length - 1) showChoices();
       return;
     }
@@ -55,16 +50,12 @@ export function initStory({
     }
   }
 
-  continueBtn.addEventListener(
-    "pointerdown",
-    (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      advanceStory();
-    },
-    { passive: false }
-  );
+  btnContinue.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    advanceStory();
+  }, { passive: false });
 
-  storyEl.classList.add("visible");
+  story.classList.add("visible");
   typeLine();
 }
