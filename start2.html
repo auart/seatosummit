@@ -20,7 +20,7 @@ html, body {
   inset: 0;
 }
 
-/* GLOBAL HARD LOCKS */
+/* HARD LOCKS */
 * {
   user-select: none;
   -webkit-user-select: none;
@@ -33,167 +33,133 @@ img {
   -webkit-user-drag: none;
 }
 
-/* extra: kill weird drag/select behaviors */
-body, .app, .stage-wrapper, .stage {
+body {
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  -webkit-user-drag: none;
 }
-
-body { touch-action: manipulation; }
 
 .app {
   position: fixed;
   inset: 0;
   background: black;
-  overflow: hidden;
 }
 
-/* ---------- EDIT ONCE VARIABLES ---------- */
-:root{
-  --stage-w: 1920px;
-  --stage-h: 1080px;
-
-  --story-width: 900px;
-  --story-bottom: 180px;
-  --story-font: "Silkscreen";
-  --story-size: 30px;
-  --story-line: 1.25;
-  --story-color: black;
-  --story-minh: 96px;
-  --story-pad-top: 16px;
-  --story-pad-x: 50px;
-
-  --btn-font: "Press Start 2P";
-  --btn-size: 28px;
-  --btn-color: black;
-  --btn-pad-x: 20px;
-
-  --btn-img-w: 420px;
-  --choices-gap: 40px;
-  --choices-bottom: 5px;
-  --choices-scale: 0.84;
-
-  --continue-bottom: 110px; /* move Continue up/down */
-}
-/* ---------------------------------------- */
-
-/* Stage scaling */
+/* STAGE */
 .stage-wrapper {
   position: absolute;
   left: 50%;
   top: 50%;
+  width: 1920px;
+  height: 1080px;
   transform: translate(-50%, -50%) scale(1);
-  transform-origin: center center;
-  width: var(--stage-w);
-  height: var(--stage-h);
+  transform-origin: center;
 }
 
 .stage {
   position: relative;
-  width: var(--stage-w);
-  height: var(--stage-h);
+  width: 1920px;
+  height: 1080px;
 }
 
 .layer {
   position: absolute;
   inset: 0;
-  width: var(--stage-w);
-  height: var(--stage-h);
+  width: 1920px;
+  height: 1080px;
   image-rendering: pixelated;
 }
 
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* Story */
+/* STORY BOX */
 .story {
   position: absolute;
   left: 50%;
-  bottom: var(--story-bottom);
+  bottom: 180px;
   transform: translateX(-50%);
-  width: var(--story-width);
+  width: 900px;
 
-  font-family: var(--story-font);
-  font-size: var(--story-size);
-  line-height: var(--story-line);
-  color: var(--story-color);
+  font-family: "Silkscreen";
+  font-size: 30px;
+  line-height: 1.25;
+  color: black;
+
+  padding: 16px 50px 0 50px;
+  min-height: 96px;
 
   opacity: 0;
-  transition: opacity 500ms ease;
+  transition: opacity 400ms ease;
   z-index: 25;
-
-  min-height: var(--story-minh);
-  padding: var(--story-pad-top) var(--story-pad-x) 0 var(--story-pad-x);
-  box-sizing: border-box;
 }
+
 .story.visible { opacity: 1; }
 
-/* Buttons */
+/* BUTTON BASE */
 .button {
   position: relative;
   display: inline-block;
   cursor: pointer;
-  pointer-events: auto;
 }
+
 .button img {
-  width: var(--btn-img-w);
+  width: 420px;
   image-rendering: pixelated;
   display: block;
 }
+
 .button span {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  font-family: var(--btn-font);
-  font-size: var(--btn-size);
-  color: var(--btn-color);
+
+  font-family: "Press Start 2P";
+  font-size: 28px;
+  color: black;
+
   pointer-events: none;
-  padding: 0 var(--btn-pad-x);
+  padding: 0 20px;
   text-align: center;
-  line-height: 1.05;
 }
 
-/* Continue button holder */
+/* CONTINUE */
 .continue-wrap {
   position: absolute;
   left: 50%;
-  bottom: var(--continue-bottom);
-  transform: translateX(-50%) scale(var(--choices-scale));
-  transform-origin: center center;
-  z-index: 999; /* make sure it's on top */
-  opacity: 1;
-  pointer-events: auto; /* clickable */
+  bottom: 90px;
+  transform: translateX(-50%) scale(0.84);
+  z-index: 40;
 }
 
 .continue-wrap.hidden {
   opacity: 0;
-  pointer-events: none; /* not clickable when hidden */
+  pointer-events: none;
 }
 
-/* Choices */
+/* CHOICES */
 .choices {
   position: absolute;
   left: 50%;
-  bottom: var(--choices-bottom);
+  bottom: 5px;
   transform: translateX(-50%);
   display: flex;
-  gap: var(--choices-gap);
-  opacity: 0;
-  transition: opacity 600ms ease;
-  z-index: 30;
+  gap: 40px;
 
-  pointer-events: none; /* IMPORTANT: disable clicks until visible */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms ease;
+  z-index: 30;
 }
+
 .choices.visible {
   opacity: 1;
-  pointer-events: auto; /* enable clicks when visible */
+  pointer-events: auto;
 }
 
 .choice-link {
   text-decoration: none;
-  transform: scale(var(--choices-scale));
-  transform-origin: center center;
+  transform: scale(0.84);
 }
 </style>
 </head>
@@ -202,6 +168,7 @@ body { touch-action: manipulation; }
 <div class="app">
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
+
       <img class="layer scene" src="starthome.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
@@ -236,6 +203,7 @@ body { touch-action: manipulation; }
           </div>
         </a>
       </div>
+
     </div>
   </div>
 
@@ -243,30 +211,27 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
-/* extra: prevent drag selecting/page gestures */
-document.addEventListener("dragstart", (e) => e.preventDefault());
-
-/* Scale stage */
+/* SCALE */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+  stageWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Audio (simple autoplay attempt) */
+/* AUDIO */
 const waves = document.getElementById("waves");
 waves.volume = 0.35;
 waves.play().catch(() => {
-  document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
+  document.addEventListener("pointerup", () => waves.play(), { once:true });
 });
 
-/* Story typing (Continue button only) */
+/* STORY */
 const story = document.getElementById("story");
-const choices = document.getElementById("choices");
 const continueWrap = document.getElementById("continueWrap");
 const btnContinue = document.getElementById("btnContinue");
+const choices = document.getElementById("choices");
 
 const lines = [
   "You take a moment to get your bearings.",
@@ -279,11 +244,6 @@ let line = 0;
 let char = 0;
 let typing = null;
 
-function showChoices() {
-  continueWrap.classList.add("hidden");
-  choices.classList.add("visible");
-}
-
 function typeLine() {
   clearInterval(typing);
   story.textContent = "";
@@ -294,47 +254,44 @@ function typeLine() {
     story.textContent = lines[line].slice(0, char);
     if (char >= lines[line].length) {
       clearInterval(typing);
-      if (line === lines.length - 1) showChoices();
+      if (line === lines.length - 1) {
+        continueWrap.classList.add("hidden");
+        choices.classList.add("visible");
+      }
     }
   }, 24);
 }
 
-function advanceStory() {
+btnContinue.addEventListener("pointerup", (e) => {
+  e.preventDefault();
+
   if (char < lines[line].length) {
     story.textContent = lines[line];
     clearInterval(typing);
-    if (line === lines.length - 1) showChoices();
     return;
   }
+
   if (line < lines.length - 1) {
     line++;
     typeLine();
   }
-}
-
-/* IMPORTANT: Continue must NOT click through to links underneath */
-btnContinue.addEventListener("pointerup", (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
-  advanceStory();
 });
 
-/* Start */
+/* START */
 story.classList.add("visible");
 typeLine();
 
-/* ---------- SCORING (ONE TIME ONLY PER PATH) ---------- */
+/* ONE-TIME SCORING */
 function addPointsOnce(flag, points) {
   if (localStorage.getItem(flag)) return;
   const total = parseInt(localStorage.getItem("sts_points_v1") || "0", 10);
-  localStorage.setItem("sts_points_v1", String(total + points));
+  localStorage.setItem("sts_points_v1", total + points);
   localStorage.setItem(flag, "1");
 }
 
-document.getElementById("btnBeach").addEventListener("pointerup", () => addPointsOnce("sts_scored_beach_v1", 1));
-document.getElementById("btnPalms").addEventListener("pointerup", () => addPointsOnce("sts_scored_palms_v1", 1));
-document.getElementById("btnRocks").addEventListener("pointerup", () => addPointsOnce("sts_scored_rocks_v1", 1));
+btnBeach.addEventListener("pointerup", () => addPointsOnce("sts_scored_beach_v1", 1));
+btnPalms.addEventListener("pointerup", () => addPointsOnce("sts_scored_palms_v1", 1));
+btnRocks.addEventListener("pointerup", () => addPointsOnce("sts_scored_rocks_v1", 1));
 </script>
 </body>
 </html>
