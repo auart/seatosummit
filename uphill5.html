@@ -93,6 +93,7 @@ body { touch-action: manipulation; }
   position: relative;
   display: inline-block;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .button img {
@@ -148,6 +149,7 @@ body { touch-action: manipulation; }
   text-decoration: none;
   transform: scale(0.84);
   transform-origin: center center;
+  display: inline-block;
 }
 </style>
 </head>
@@ -190,6 +192,9 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
+/* Prevent weird drag behavior */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -200,7 +205,7 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Story */
+/* Story (Continue button only, fixed early-click issue) */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -223,40 +228,53 @@ function showChoices() {
 }
 
 function typeLine() {
-  clearInterval(typing);
+  if (typing) clearInterval(typing);
+  typing = null;
   story.textContent = "";
   char = 0;
 
   typing = setInterval(() => {
     char++;
     story.textContent = lines[line].slice(0, char);
+
     if (char >= lines[line].length) {
+      char = lines[line].length;
       clearInterval(typing);
+      typing = null;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (char < lines[line].length) {
-    story.textContent = lines[line];
+  // If still typing, finish instantly
+  if (typing) {
     clearInterval(typing);
+    typing = null;
+    char = lines[line].length;
+    story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
   }
+
+  // Next line
   if (line < lines.length - 1) {
     line++;
     typeLine();
+  } else {
+    showChoices();
   }
 }
 
-btnContinue.addEventListener("pointerup", e => {
+/* Use pointerdown so spam-clicking never misses */
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
-});
+}, { passive: false });
 
 /* Start */
+story.classList.add("visible");
 typeLine();
 </script>
 </body>
