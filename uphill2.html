@@ -98,6 +98,7 @@ body { touch-action: manipulation; }
   position: relative;
   display: inline-block;
   cursor: pointer;
+  pointer-events: auto;
 }
 .button img {
   width: 420px;
@@ -122,7 +123,7 @@ body { touch-action: manipulation; }
   letter-spacing: -1px;
 }
 
-/* Continue button (same position as middle choice) */
+/* Continue button */
 .continue-wrap {
   position: absolute;
   left: 50%;
@@ -153,6 +154,7 @@ body { touch-action: manipulation; }
   text-decoration: none;
   transform: scale(0.84);
   transform-origin: center center;
+  display: inline-block;
 }
 </style>
 </head>
@@ -199,6 +201,9 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
+/* Prevent weird drag behavior */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -269,7 +274,7 @@ function startSavingAudio() {
 restoreAudio();
 startSavingAudio();
 
-/* ---------- STORY (Continue button only) ---------- */
+/* ---------- STORY (Continue button only, FIXED EARLY-CLICK ISSUE) ---------- */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -277,7 +282,7 @@ const btnContinue = document.getElementById("btnContinue");
 
 const lines = [
   "The trail tightens as you climb.",
-  "Bare stone replaces soil, and the path narrows into a sharp ridge.", 
+  "Bare stone replaces soil, and the path narrows into a sharp ridge.",
   "A sheer drop on one side, a jagged cliff face on the other.",
   "You steady yourself before taking the next step."
 ];
@@ -292,38 +297,50 @@ function showChoices() {
 }
 
 function typeLine() {
-  clearInterval(typing);
+  if (typing) clearInterval(typing);
+  typing = null;
   story.textContent = "";
   char = 0;
 
   typing = setInterval(() => {
     char++;
     story.textContent = lines[line].slice(0, char);
+
     if (char >= lines[line].length) {
+      char = lines[line].length;
       clearInterval(typing);
+      typing = null;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (char < lines[line].length) {
-    story.textContent = lines[line];
+  // If currently typing, finish line instantly (no freezes)
+  if (typing) {
     clearInterval(typing);
+    typing = null;
+    char = lines[line].length;
+    story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
   }
+
+  // Move to next line
   if (line < lines.length - 1) {
     line++;
     typeLine();
+  } else {
+    showChoices();
   }
 }
 
-btnContinue.addEventListener("pointerup", (e) => {
+/* Use pointerdown (more reliable than pointerup when spamming clicks) */
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
-});
+}, { passive: false });
 
 /* Start */
 story.classList.add("visible");
