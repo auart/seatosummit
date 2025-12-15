@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Sea to Summit, Start</title>
+<title>Sea to Summit, Start 2</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,9 +33,13 @@ img {
   -webkit-user-drag: none;
 }
 
-body {
-  touch-action: manipulation;
+/* extra: kill weird drag/select behaviors */
+body, .app, .stage-wrapper, .stage {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-drag: none;
 }
+
+body { touch-action: manipulation; }
 
 .app {
   position: fixed;
@@ -68,6 +72,8 @@ body {
   --choices-gap: 40px;
   --choices-bottom: 5px;
   --choices-scale: 0.84;
+
+  --continue-bottom: 110px; /* move Continue up/down */
 }
 /* ---------------------------------------- */
 
@@ -127,6 +133,7 @@ body {
   position: relative;
   display: inline-block;
   cursor: pointer;
+  pointer-events: auto;
 }
 .button img {
   width: var(--btn-img-w);
@@ -145,6 +152,22 @@ body {
   padding: 0 var(--btn-pad-x);
   text-align: center;
   line-height: 1.05;
+}
+
+/* Continue button holder */
+.continue-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: var(--continue-bottom);
+  transform: translateX(-50%) scale(var(--choices-scale));
+  transform-origin: center center;
+  z-index: 29;
+  opacity: 1;
+}
+
+.continue-wrap.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Choices */
@@ -178,6 +201,13 @@ body {
 
       <div class="story" id="story"></div>
 
+      <div class="continue-wrap" id="continueWrap">
+        <div class="button" id="btnContinue">
+          <img src="stsbutton.png" alt="">
+          <span>Continue</span>
+        </div>
+      </div>
+
       <div class="choices" id="choices">
         <a class="choice-link" id="btnBeach" href="beach1.html">
           <div class="button">
@@ -207,6 +237,9 @@ body {
 </div>
 
 <script>
+/* extra: prevent drag selecting/page gestures */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -216,16 +249,18 @@ function scaleStage() {
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Audio */
+/* Audio (simple autoplay attempt) */
 const waves = document.getElementById("waves");
 waves.volume = 0.35;
 waves.play().catch(() => {
-  document.addEventListener("pointerup", () => waves.play(), { once:true });
+  document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
 });
 
-/* Story typing */
+/* Story typing (Continue button only) */
 const story = document.getElementById("story");
 const choices = document.getElementById("choices");
+const continueWrap = document.getElementById("continueWrap");
+const btnContinue = document.getElementById("btnContinue");
 
 const lines = [
   "You take a moment to get your bearings.",
@@ -238,6 +273,11 @@ let line = 0;
 let char = 0;
 let typing = null;
 
+function showChoices() {
+  continueWrap.classList.add("hidden");
+  choices.classList.add("visible");
+}
+
 function typeLine() {
   clearInterval(typing);
   story.textContent = "";
@@ -248,7 +288,7 @@ function typeLine() {
     story.textContent = lines[line].slice(0, char);
     if (char >= lines[line].length) {
       clearInterval(typing);
-      if (line === lines.length - 1) choices.classList.add("visible");
+      if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
@@ -257,59 +297,30 @@ function advanceStory() {
   if (char < lines[line].length) {
     story.textContent = lines[line];
     clearInterval(typing);
-    if (line === lines.length - 1) choices.classList.add("visible");
-  } else if (line < lines.length - 1) {
+    if (line === lines.length - 1) showChoices();
+    return;
+  }
+  if (line < lines.length - 1) {
     line++;
     typeLine();
   }
 }
 
-/* -------- TAP ONLY (FIXES CLICK-DRAG FREEZE) -------- */
-let downX = 0, downY = 0, downId = null, moved = false;
-const TAP_SLOP = 8; // px allowed movement
-
-document.addEventListener("pointerdown", (e) => {
-  // ignore if they start on a button
-  if (e.target.closest(".choice-link")) return;
-  downId = e.pointerId;
-  downX = e.clientX;
-  downY = e.clientY;
-  moved = false;
+/* Important: only Continue advances */
+btnContinue.addEventListener("pointerup", (e) => {
+  e.preventDefault();
+  advanceStory();
 });
-
-document.addEventListener("pointermove", (e) => {
-  if (downId === null || e.pointerId !== downId) return;
-  const dx = e.clientX - downX;
-  const dy = e.clientY - downY;
-  if ((dx*dx + dy*dy) > (TAP_SLOP*TAP_SLOP)) moved = true;
-});
-
-document.addEventListener("pointerup", (e) => {
-  // button clicks still work normally
-  if (e.target.closest(".choice-link")) return;
-
-  // only advance if it was a "tap" (no drag)
-  if (downId !== null && e.pointerId === downId && !moved) {
-    advanceStory();
-  }
-  downId = null;
-});
-
-document.addEventListener("pointercancel", () => {
-  downId = null;
-  moved = false;
-});
-/* ---------------------------------------------------- */
 
 /* Start */
 story.classList.add("visible");
 typeLine();
 
-/* One-time scoring */
+/* ---------- SCORING (ONE TIME ONLY PER PATH) ---------- */
 function addPointsOnce(flag, points) {
   if (localStorage.getItem(flag)) return;
   const total = parseInt(localStorage.getItem("sts_points_v1") || "0", 10);
-  localStorage.setItem("sts_points_v1", total + points);
+  localStorage.setItem("sts_points_v1", String(total + points));
   localStorage.setItem(flag, "1");
 }
 
