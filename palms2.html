@@ -191,6 +191,9 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
+/* Prevent weird drag behavior (helps with “click too soon / drag” issues) */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -200,14 +203,14 @@ function scaleStage() {
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Audio */
+/* Audio (simple) */
 const waves = document.getElementById("waves");
 waves.volume = 0.35;
 waves.play().catch(() => {
   document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
 });
 
-/* Story typing */
+/* Story typing (fixed so early clicks can’t “desync” and kill Continue) */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -237,30 +240,44 @@ function typeLine() {
   typing = setInterval(() => {
     char++;
     story.textContent = lines[line].slice(0, char);
+
     if (char >= lines[line].length) {
+      char = lines[line].length; /* KEY FIX */
       clearInterval(typing);
+      typing = null;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (char < lines[line].length) {
-    story.textContent = lines[line];
+  const currentLen = lines[line].length;
+
+  /* If currently typing, finish the line (and lock char correctly) */
+  if (typing) {
     clearInterval(typing);
+    typing = null;
+    char = currentLen; /* KEY FIX */
+    story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
   }
+
+  /* If line is finished, go next */
   if (line < lines.length - 1) {
     line++;
     typeLine();
+  } else {
+    showChoices();
   }
 }
 
-btnContinue.addEventListener("pointerup", (e) => {
+/* Use pointerdown (more reliable than pointerup when people click fast) */
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
+  e.stopPropagation();
   advanceStory();
-});
+}, { passive:false });
 
 /* Start */
 typeLine();
