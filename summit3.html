@@ -55,18 +55,18 @@ body { touch-action: manipulation; }
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
-  pointer-events: none; /* important: prevents “click anywhere triggers” bugs */
+  pointer-events: none;
 }
 
 .scene { z-index: 1; }
-.mushLayer { z-index: 6; } /* visual overlay only, not clickable */
+.mushLayer { z-index: 6; }
 .frame { z-index: 10; }
 
 /* Story (same style) */
 .story {
   position: absolute;
   left: 50.5%;
-  bottom: 180px; /* keep your good nudge */
+  bottom: 180px;
   transform: translateX(-50%);
   width: 900px;
 
@@ -79,12 +79,7 @@ body { touch-action: manipulation; }
   transition: opacity 600ms ease;
   z-index: 25;
 
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-
   min-height: 96px;
-
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
 
@@ -92,17 +87,19 @@ body { touch-action: manipulation; }
 }
 .story.visible { opacity: 1; }
 
-/* Button component (same) */
+/* Button component */
 .button {
   position: relative;
   cursor: pointer;
   display: inline-block;
+  pointer-events: auto;
 }
 
 .button img {
   width: 420px;
   image-rendering: pixelated;
   display: block;
+  pointer-events: none;
 }
 
 .button span {
@@ -117,9 +114,23 @@ body { touch-action: manipulation; }
   text-align: center;
   padding: 0 20px;
   line-height: 1.05;
+  letter-spacing: -1px;
 }
 
-/* Choices row (same) */
+/* Continue button (text advance) */
+.continue-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%) scale(0.84);
+  z-index: 40;
+}
+.continue-wrap.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Choices row */
 .choices {
   position: absolute;
   left: 50%;
@@ -149,10 +160,10 @@ body { touch-action: manipulation; }
 /* Mushroom hotspot (ONLY this is clickable) */
 .mushHotspot {
   position: absolute;
-  z-index: 20;              /* above story bg, below buttons */
+  z-index: 20;
   cursor: pointer;
-  pointer-events: auto;     /* allow clicks here */
-  background: rgba(255,255,255,0); /* invisible */
+  pointer-events: auto;
+  background: rgba(255,255,255,0);
   border-radius: 8px;
 }
 
@@ -196,17 +207,21 @@ body { touch-action: manipulation; }
 
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage" id="stage">
-      <!-- main image + mushroom overlay + frame -->
       <img class="layer scene" src="summit3i.png" alt="">
       <img class="layer mushLayer" src="mushroom.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <!-- Mushroom clickable hotspot (percent-based so it stays correct when scaled) -->
-      <!-- Based on your provided images: mushroom sits around x~60%, y~58.5% of the picture. -->
       <div id="mushHotspot" class="mushHotspot"
            style="left:59.9%; top:58.4%; width:4.7%; height:8.3%;"></div>
 
       <div class="story" id="story" aria-label="Story text"></div>
+
+      <div class="continue-wrap" id="continueWrap">
+        <div class="button" id="btnContinue">
+          <img src="stsbutton.png" alt="">
+          <span>Continue</span>
+        </div>
+      </div>
 
       <div class="choices" id="choices">
         <a class="choice-link" href="end.html?choice=breath" id="btnBreath">
@@ -235,7 +250,6 @@ body { touch-action: manipulation; }
 
   <div class="flash" id="flash"></div>
 
-  <!-- wind continues from earlier pages -->
   <audio id="wind" src="wind.mp3" preload="auto" loop></audio>
 
 </div>
@@ -278,9 +292,11 @@ function restoreWind() {
     p.catch(() => {
       const resume = () => {
         wind.play().catch(() => {});
-        document.removeEventListener("click", resume, true);
+        document.removeEventListener("pointerup", resume, true);
+        document.removeEventListener("keydown", resume, true);
       };
-      document.addEventListener("click", resume, true);
+      document.addEventListener("pointerup", resume, true);
+      document.addEventListener("keydown", resume, true);
     });
   }
 }
@@ -318,9 +334,11 @@ wind.addEventListener("canplay", () => {
 restoreWind();
 startSavingWind();
 
-/* Story: line-by-line click like start2.html */
+/* Story: Continue button only */
 const story = document.getElementById("story");
 const choices = document.getElementById("choices");
+const continueWrap = document.getElementById("continueWrap");
+const btnContinue = document.getElementById("btnContinue");
 
 const storyLines = [
   "The light shifts around you, faint and strange, as if the island itself is watching.",
@@ -331,11 +349,14 @@ const storyLines = [
 let lineIndex = 0;
 let charIndex = 0;
 let typing = null;
-let isTyping = false;
+
+function showChoices() {
+  continueWrap.classList.add("hidden");
+  choices.classList.add("visible");
+}
 
 function startTypingLine() {
   clearInterval(typing);
-  isTyping = true;
   charIndex = 0;
   story.textContent = "";
   const current = storyLines[lineIndex];
@@ -345,21 +366,16 @@ function startTypingLine() {
     story.textContent = current.slice(0, charIndex);
     if (charIndex >= current.length) {
       clearInterval(typing);
-      isTyping = false;
-
-      if (lineIndex === storyLines.length - 1) {
-        choices.classList.add("visible");
-      }
+      if (lineIndex === storyLines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (isTyping) {
-    clearInterval(typing);
-    isTyping = false;
+  if (charIndex < storyLines[lineIndex].length) {
     story.textContent = storyLines[lineIndex];
-    if (lineIndex === storyLines.length - 1) choices.classList.add("visible");
+    clearInterval(typing);
+    if (lineIndex === storyLines.length - 1) showChoices();
     return;
   }
   if (lineIndex < storyLines.length - 1) {
@@ -368,10 +384,9 @@ function advanceStory() {
   }
 }
 
-/* IMPORTANT: do NOT trigger story advance when clicking buttons or mushroom hotspot */
-document.addEventListener("click", (e) => {
-  if (e.target.closest(".choice-link")) return;
-  if (e.target.closest("#mushHotspot")) return;
+btnContinue.addEventListener("pointerup", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
   advanceStory();
 });
 
@@ -391,7 +406,6 @@ mushHotspot.addEventListener("click", (e) => {
   flash.classList.add("on");
   stage.classList.add("glitch");
 
-  // tiny delay so the player sees the flash
   setTimeout(() => {
     window.location.href = "alien1.html";
   }, 420);
