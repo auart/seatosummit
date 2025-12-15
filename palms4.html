@@ -169,21 +169,21 @@ body { touch-action: manipulation; }
         </div>
       </div>
 
-     <div class="choices" id="choices">
-  <a class="choice-link" id="btnBack" href="palms3.html">
-    <div class="button">
-      <img src="stsbutton.png" alt="">
-      <span>Back</span>
-    </div>
-  </a>
+      <div class="choices" id="choices">
+        <a class="choice-link" id="btnBack" href="palms3.html">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Back</span>
+          </div>
+        </a>
 
-  <a class="choice-link" id="btnContinuePath" href="palms5.html">
-    <div class="button">
-      <img src="stsbutton.png" alt="">
-      <span>Continue</span>
-    </div>
-  </a>
-</div>
+        <a class="choice-link" id="btnContinuePath" href="palms5.html">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Continue</span>
+          </div>
+        </a>
+      </div>
     </div>
   </div>
 
@@ -193,6 +193,9 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
+/* Prevent weird drag behavior */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -218,7 +221,6 @@ function restoreAudio() {
   const savedTime = parseFloat(localStorage.getItem(TIME_KEY));
   const thisSrc = waves.getAttribute("src");
 
-  // If same track as last page, resume time
   if (savedSrc === thisSrc) {
     if (Number.isFinite(savedTime) && savedTime > 0) {
       try { waves.currentTime = savedTime; } catch(e){}
@@ -293,31 +295,42 @@ function typeLine() {
   typing = setInterval(() => {
     char++;
     story.textContent = lines[line].slice(0, char);
+
     if (char >= lines[line].length) {
+      char = lines[line].length;   /* KEY FIX */
       clearInterval(typing);
+      typing = null;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (char < lines[line].length) {
-    story.textContent = lines[line];
+  const currentLen = lines[line].length;
+
+  if (typing) {
     clearInterval(typing);
+    typing = null;
+    char = currentLen;             /* KEY FIX */
+    story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
   }
+
   if (line < lines.length - 1) {
     line++;
     typeLine();
+  } else {
+    showChoices();
   }
 }
 
-btnContinue.addEventListener("pointerup", (e) => {
+/* Use pointerdown so fast clicks always register */
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
-});
+}, { passive:false });
 
 /* Start */
 typeLine();
