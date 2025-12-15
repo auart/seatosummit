@@ -147,13 +147,18 @@ body { touch-action: manipulation; }
   left: 50%;
   bottom: var(--continue-bottom);
   transform: translateX(-50%) scale(var(--choices-scale));
-  z-index: 29;
+  transform-origin: center center;
+
+  z-index: 999;
+  opacity: 1;
+  transition: opacity 350ms ease;
+  pointer-events: auto;
 }
+
 .continue-wrap.hidden {
   opacity: 0;
   pointer-events: none;
 }
-#btnContinue { touch-action: none; }
 
 /* Choices */
 .choices {
@@ -163,11 +168,18 @@ body { touch-action: manipulation; }
   transform: translateX(-50%);
   display: flex;
   gap: var(--choices-gap);
+
   opacity: 0;
   transition: opacity 600ms ease;
   z-index: 30;
+
+  pointer-events: none;
 }
-.choices.visible { opacity: 1; }
+
+.choices.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .choice-link {
   text-decoration: none;
