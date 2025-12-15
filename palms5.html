@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sea to Summit, Palms 5</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: black;
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
+}
+
+* {
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body { touch-action: manipulation; }
+
+.app {
+  position: fixed;
+  inset: 0;
+  background: black;
+  overflow: hidden;
+}
+
+/* Stage scaling */
+.stage-wrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  width: 1920px;
+  height: 1080px;
+}
+
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.scene { z-index: 1; }
+.frame { z-index: 10; }
+
+/* Story box */
+.story {
+  position: absolute;
+  left: 50%;
+  bottom: 180px;
+  transform: translateX(-50%);
+  width: 900px;
+
+  font-family: "Silkscreen";
+  font-size: 30px;
+  line-height: 1.25;
+  color: black;
+
+  opacity: 0;
+  transition: opacity 500ms ease;
+  z-index: 25;
+
+  min-height: 120px;
+  padding: 16px 50px 0 50px;
+  box-sizing: border-box;
+}
+.story.visible { opacity: 1; }
+
+/* Buttons */
+.button {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.button img {
+  width: 420px;
+  image-rendering: pixelated;
+  display: block;
+}
+
+.button span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: "Press Start 2P";
+  font-size: 28px;
+  color: black;
+  pointer-events: none;
+  padding: 0 20px;
+  text-align: center;
+  line-height: 1.05;
+
+  letter-spacing: -1px;
+  word-spacing: -6px;
+}
+
+/* Choices */
+.choices {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 40px;
+  opacity: 0;
+  transition: opacity 600ms ease;
+  z-index: 30;
+}
+.choices.visible { opacity: 1; }
+
+.choice-link {
+  text-decoration: none;
+  transform: scale(0.84);
+  transform-origin: center center;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <div class="stage-wrapper" id="stageWrapper">
+    <div class="stage">
+
+      <img class="layer scene" src="palms5i.png" alt="">
+      <img class="layer frame" src="stsframe3.png" alt="">
+
+      <div class="story visible" id="story"></div>
+
+      <div class="choices visible" id="choices">
+
+        <!-- Back (LEFT) -->
+        <a class="choice-link" href="palms4.html">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Back</span>
+          </div>
+        </a>
+
+        <!-- Enter Cave (MIDDLE) -->
+        <a class="choice-link" href="cave1.html">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Enter the Cave</span>
+          </div>
+        </a>
+
+        <!-- Continue Up Hill (RIGHT) -->
+        <a class="choice-link" href="summit1.html">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Continue Up the Hill</span>
+          </div>
+        </a>
+
+      </div>
+
+    </div>
+  </div>
+
+  <audio id="palmsAudio" src="palms.mp3" preload="auto" loop></audio>
+
+</div>
+
+<script>
+/* Scale stage */
+const stageWrapper = document.getElementById("stageWrapper");
+function scaleStage() {
+  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+}
+window.addEventListener("resize", scaleStage);
+scaleStage();
+
+/* Audio persistence */
+const audio = document.getElementById("palmsAudio");
+const TIME_KEY = "sts_palms_time_v1";
+const VOL_KEY  = "sts_palms_vol_v1";
+
+const savedTime = parseFloat(localStorage.getItem(TIME_KEY));
+const savedVol  = parseFloat(localStorage.getItem(VOL_KEY));
+
+audio.volume = Number.isFinite(savedVol) ? savedVol : 0.5;
+if (Number.isFinite(savedTime)) {
+  try { audio.currentTime = savedTime; } catch(e){}
+}
+
+audio.play().catch(() => {
+  document.addEventListener("pointerup", () => audio.play(), { once:true });
+});
+
+setInterval(() => {
+  if (!audio.paused) {
+    localStorage.setItem(TIME_KEY, audio.currentTime);
+    localStorage.setItem(VOL_KEY, audio.volume);
+  }
+}, 250);
+
+/* Story text */
+const story = document.getElementById("story");
+story.textContent =
+  "The grove narrows again until the trees part around a rocky rise. " +
+  "At its base, half-hidden by vines and shadow, an opening leads into a cave.\n\n" +
+  "You can continue up the hill... or step inside the cave.";
+</script>
+
+</body>
+</html>
