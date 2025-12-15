@@ -172,7 +172,7 @@ body { touch-action: manipulation; }
       </div>
 
       <div class="choices" id="choices">
-        <a class="choice-link" href="uphill5.html">
+        <a class="choice-link" id="btnUpward" href="uphill5.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Continue Upward</span>
@@ -198,7 +198,7 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Story (Continue button only, fixed early-click issue) */
+/* Story (Continue button only, fixed early-click issue + does not break choice links) */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -242,7 +242,6 @@ function typeLine() {
 }
 
 function advanceStory() {
-  // If still typing, finish instantly (no freeze)
   if (typing) {
     clearInterval(typing);
     typing = null;
@@ -252,7 +251,6 @@ function advanceStory() {
     return;
   }
 
-  // Next line
   if (line < lines.length - 1) {
     line++;
     typeLine();
@@ -261,12 +259,19 @@ function advanceStory() {
   }
 }
 
-/* Use pointerdown so spam-clicking never “misses” */
+/* IMPORTANT: ignore clicks that happen on the choice area */
 btnContinue.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("#choices")) return;
   e.preventDefault();
-  e.stopPropagation();
   advanceStory();
 }, { passive: false });
+
+/* Ensure choice links always work */
+choices.querySelectorAll("a").forEach(a => {
+  a.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+  }, { passive: true });
+});
 
 /* Start */
 story.classList.add("visible");
