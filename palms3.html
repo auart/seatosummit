@@ -153,6 +153,11 @@ body { touch-action: manipulation; }
 
 /* Slightly smaller labels so 3 fit clean */
 .choices .button span { font-size: 22px; padding: 0 18px; }
+
+/* FIX: force left/middle/right order */
+#btnBack   { order: 1; }  /* left */
+#btnDeeper { order: 2; }  /* middle */
+#btnStream { order: 3; }  /* right */
 </style>
 </head>
 
@@ -253,7 +258,7 @@ function typeLine() {
     story.textContent = lines[line].slice(0, char);
 
     if (char >= lines[line].length) {
-      char = lines[line].length;   /* KEY FIX */
+      char = lines[line].length;
       clearInterval(typing);
       typing = null;
       if (line === lines.length - 1) showChoices();
@@ -267,7 +272,7 @@ function advanceStory() {
   if (typing) {
     clearInterval(typing);
     typing = null;
-    char = currentLen;             /* KEY FIX */
+    char = currentLen;
     story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
