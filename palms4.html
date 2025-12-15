@@ -1,0 +1,55 @@
+<audio id="waves" src="palms.mp3" preload="auto" loop></audio>
+
+<script>
+const waves = document.getElementById("waves");
+const TIME_KEY = "sts_audio_time_v1";
+const SRC_KEY  = "sts_audio_src_v1";
+const VOL_KEY  = "sts_audio_vol_v1";
+
+function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+
+function restoreAudio() {
+  const savedVol = parseFloat(localStorage.getItem(VOL_KEY));
+  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol,0,1) : 0.35;
+
+  const savedSrc = localStorage.getItem(SRC_KEY);
+  const savedTime = parseFloat(localStorage.getItem(TIME_KEY));
+
+  // If same track as last page, resume time
+  if (savedSrc === waves.currentSrc || savedSrc === waves.getAttribute("src")) {
+    if (Number.isFinite(savedTime) && savedTime > 0) {
+      try { waves.currentTime = savedTime; } catch(e){}
+    }
+  }
+
+  const p = waves.play();
+  if (p && typeof p.catch === "function") {
+    p.catch(() => {
+      const resume = () => waves.play().catch(()=>{});
+      document.addEventListener("pointerup", resume, { once:true });
+      document.addEventListener("keydown", resume, { once:true });
+    });
+  }
+}
+
+function startSavingAudio() {
+  setInterval(() => {
+    if (!waves.paused && Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(VOL_KEY, String(waves.volume));
+      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
+    }
+  }, 250);
+
+  window.addEventListener("beforeunload", () => {
+    if (Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(VOL_KEY, String(waves.volume));
+      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
+    }
+  });
+}
+
+restoreAudio();
+startSavingAudio();
+</script>
