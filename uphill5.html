@@ -24,7 +24,6 @@ html, body {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  -webkit-user-select: none;
 }
 
 body { touch-action: manipulation; }
@@ -33,10 +32,9 @@ body { touch-action: manipulation; }
   position: fixed;
   inset: 0;
   background: black;
-  overflow: hidden;
 }
 
-/* Stage scaling */
+/* Stage */
 .stage-wrapper {
   position: absolute;
   left: 50%;
@@ -65,7 +63,7 @@ body { touch-action: manipulation; }
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* Story box */
+/* Story */
 .story {
   position: absolute;
   left: 50%;
@@ -73,27 +71,22 @@ body { touch-action: manipulation; }
   transform: translateX(-50%);
   width: 900px;
 
-  font-family: "Silkscreen";
+  font-family: Silkscreen;
   font-size: 30px;
   line-height: 1.25;
   color: black;
 
-  opacity: 0;
-  transition: opacity 500ms ease;
   z-index: 25;
-
   min-height: 96px;
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
 }
-.story.visible { opacity: 1; }
 
 /* Buttons */
 .button {
   position: relative;
   display: inline-block;
   cursor: pointer;
-  pointer-events: auto;
 }
 
 .button img {
@@ -113,22 +106,15 @@ body { touch-action: manipulation; }
   letter-spacing: -1px;
   color: black;
   pointer-events: none;
-  padding: 0 20px;
-  text-align: center;
-  line-height: 1.05;
 }
 
-/* Continue button */
+/* Continue */
 .continue-wrap {
   position: absolute;
   left: 50%;
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
-}
-.continue-wrap.hidden {
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* Choices */
@@ -139,17 +125,21 @@ body { touch-action: manipulation; }
   transform: translateX(-50%);
   display: flex;
   gap: 40px;
-  opacity: 0;
-  transition: opacity 600ms ease;
   z-index: 30;
+
+  opacity: 0;
+  pointer-events: none;
 }
-.choices.visible { opacity: 1; }
+
+.choices.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .choice-link {
   text-decoration: none;
   transform: scale(0.84);
   transform-origin: center center;
-  display: inline-block;
 }
 </style>
 </head>
@@ -162,7 +152,7 @@ body { touch-action: manipulation; }
       <img class="layer scene" src="uphill5i.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <div class="story visible" id="story"></div>
+      <div class="story" id="story"></div>
 
       <div class="continue-wrap" id="continueWrap">
         <div class="button" id="btnContinue">
@@ -192,22 +182,18 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
-/* Prevent weird drag behavior */
-document.addEventListener("dragstart", (e) => e.preventDefault());
-
-/* Scale stage */
+/* Scale */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
-  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + s + ")";
 }
 window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Story (Continue button only, fixed early-click issue) */
+/* Story */
 const story = document.getElementById("story");
-const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
 const btnContinue = document.getElementById("btnContinue");
 
@@ -223,13 +209,13 @@ let char = 0;
 let typing = null;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");
+  const cw = document.getElementById("continueWrap");
+  if (cw) cw.remove();           // RULE A: destroy overlay
   choices.classList.add("visible");
 }
 
 function typeLine() {
   if (typing) clearInterval(typing);
-  typing = null;
   story.textContent = "";
   char = 0;
 
@@ -238,16 +224,15 @@ function typeLine() {
     story.textContent = lines[line].slice(0, char);
 
     if (char >= lines[line].length) {
-      char = lines[line].length;
       clearInterval(typing);
       typing = null;
+      char = lines[line].length;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  // If still typing, finish instantly
   if (typing) {
     clearInterval(typing);
     typing = null;
@@ -257,7 +242,6 @@ function advanceStory() {
     return;
   }
 
-  // Next line
   if (line < lines.length - 1) {
     line++;
     typeLine();
@@ -266,15 +250,11 @@ function advanceStory() {
   }
 }
 
-/* Use pointerdown so spam-clicking never misses */
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
-  e.stopPropagation();
   advanceStory();
-}, { passive: false });
+}, { passive:false });
 
-/* Start */
-story.classList.add("visible");
 typeLine();
 </script>
 </body>
