@@ -83,11 +83,9 @@ body { touch-action: manipulation; }
   transition: opacity 500ms ease;
   z-index: 25;
 
-  min-height: 160px;
+  min-height: 140px;
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
-
-  white-space: pre-line;
 }
 .story.visible { opacity: 1; }
 
@@ -111,13 +109,25 @@ body { touch-action: manipulation; }
   display: grid;
   place-items: center;
   font-family: "Press Start 2P";
-  font-size: 26px;
+  font-size: 28px;
   color: black;
   pointer-events: none;
   padding: 0 20px;
   text-align: center;
   line-height: 1.05;
-  letter-spacing: -1px;
+}
+
+/* Continue button (same position as middle choice) */
+.continue-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%) scale(0.84);
+  z-index: 40;
+}
+.continue-wrap.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Choices */
@@ -152,34 +162,42 @@ body { touch-action: manipulation; }
 
       <div class="story visible" id="story"></div>
 
-      <div class="choices visible" id="choices">
-        <!-- Back on the left -->
-        <a class="choice-link" href="palms4.html">
+      <div class="continue-wrap" id="continueWrap">
+        <div class="button" id="btnContinue">
+          <img src="stsbutton.png" alt="">
+          <span>Continue</span>
+        </div>
+      </div>
+
+      <div class="choices" id="choices">
+        <a class="choice-link" id="btnBack" href="palms4.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Back</span>
           </div>
         </a>
 
-        <!-- Continue options on the right -->
-        <a class="choice-link" href="cave1.html">
+        <a class="choice-link" id="btnCave" href="cave1.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Enter the Cave</span>
           </div>
         </a>
 
-        <a class="choice-link" href="uphill1.html">
+        <a class="choice-link" id="btnUphill" href="uphill1.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Continue Up the Hill</span>
           </div>
         </a>
       </div>
+
     </div>
   </div>
 
-  <audio id="palmsAudio" src="palms.mp3" preload="auto" loop></audio>
+  <!-- Seamless audio -->
+  <audio id="waves" src="palms.mp3" preload="auto" loop></audio>
+
 </div>
 
 <script>
@@ -192,25 +210,124 @@ function scaleStage() {
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Seamless palms audio */
-const audio = document.getElementById("palmsAudio");
-audio.volume = 0.6;
+/* ---------- SEAMLESS AUDIO (same track resumes across pages) ---------- */
+const waves = document.getElementById("waves");
+const TIME_KEY = "sts_audio_time_v1";
+const SRC_KEY  = "sts_audio_src_v1";
+const VOL_KEY  = "sts_audio_vol_v1";
 
-audio.play().catch(() => {
-  document.addEventListener("pointerup", () => {
-    audio.play().catch(()=>{});
-  }, { once:true });
+function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+
+function restoreAudio() {
+  const savedVol = parseFloat(localStorage.getItem(VOL_KEY));
+  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol,0,1) : 0.35;
+
+  const savedSrc = localStorage.getItem(SRC_KEY);
+  const savedTime = parseFloat(localStorage.getItem(TIME_KEY));
+  const thisSrc = waves.getAttribute("src");
+
+  if (savedSrc === thisSrc) {
+    if (Number.isFinite(savedTime) && savedTime > 0) {
+      try { waves.currentTime = savedTime; } catch(e){}
+    }
+  }
+
+  const p = waves.play();
+  if (p && typeof p.catch === "function") {
+    p.catch(() => {
+      const resume = () => waves.play().catch(()=>{});
+      document.addEventListener("pointerup", resume, { once:true });
+      document.addEventListener("keydown", resume, { once:true });
+    });
+  }
+}
+
+function startSavingAudio() {
+  setInterval(() => {
+    if (!waves.paused && Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(VOL_KEY, String(waves.volume));
+      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
+    }
+  }, 250);
+
+  window.addEventListener("beforeunload", () => {
+    if (Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(VOL_KEY, String(waves.volume));
+      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
+    }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(VOL_KEY, String(waves.volume));
+      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
+    }
+  });
+}
+
+restoreAudio();
+startSavingAudio();
+
+/* ---------- STORY (Continue button only) ---------- */
+const story = document.getElementById("story");
+const continueWrap = document.getElementById("continueWrap");
+const choices = document.getElementById("choices");
+const btnContinue = document.getElementById("btnContinue");
+
+const lines = [
+  "The grove narrows again until the trees part around a rocky rise.",
+  "At its base, half-hidden by vines and shadow, an opening leads into a cave.",
+  "You can continue up the hill… or step inside the cave."
+];
+
+let line = 0;
+let char = 0;
+let typing = null;
+
+function showChoices() {
+  continueWrap.classList.add("hidden");
+  choices.classList.add("visible");
+}
+
+function typeLine() {
+  clearInterval(typing);
+  story.textContent = "";
+  char = 0;
+
+  typing = setInterval(() => {
+    char++;
+    story.textContent = lines[line].slice(0, char);
+    if (char >= lines[line].length) {
+      clearInterval(typing);
+      if (line === lines.length - 1) showChoices();
+    }
+  }, 24);
+}
+
+function advanceStory() {
+  if (char < lines[line].length) {
+    story.textContent = lines[line];
+    clearInterval(typing);
+    if (line === lines.length - 1) showChoices();
+    return;
+  }
+  if (line < lines.length - 1) {
+    line++;
+    typeLine();
+  }
+}
+
+btnContinue.addEventListener("pointerup", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  advanceStory();
 });
 
-/* Story text */
-const story = document.getElementById("story");
-
-story.textContent =
-`The grove narrows again until the trees part around a rocky rise.
-At its base, half-hidden by vines and shadow, an opening leads into a cave.
-
-You can continue up the hill…
-or step inside the cave.`;
+/* Start */
+typeLine();
 </script>
 </body>
 </html>
