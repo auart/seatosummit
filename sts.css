@@ -1,23 +1,35 @@
-/* sts.css */
-
-/* Global lock, no scroll, no selection */
+/* =========================
+   GLOBAL RESET / LOCKS
+   ========================= */
 html, body {
   margin: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden;
   background: black;
+  overflow: hidden;
   position: fixed;
   inset: 0;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
 }
 
-body { touch-action: manipulation; }
-* { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+* {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
 
-/* App shell */
+img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+body {
+  touch-action: manipulation;
+}
+
+/* =========================
+   APP / STAGE
+   ========================= */
 .app {
   position: fixed;
   inset: 0;
@@ -25,7 +37,6 @@ body { touch-action: manipulation; }
   overflow: hidden;
 }
 
-/* Stage scaling */
 .stage-wrapper {
   position: absolute;
   left: 50%;
@@ -42,63 +53,58 @@ body { touch-action: manipulation; }
   height: 1080px;
 }
 
-/* Layers */
 .layer {
   position: absolute;
-  left: 0;
-  top: 0;
+  inset: 0;
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
-  pointer-events: none;
 }
 
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* Story box */
+/* =========================
+   STORY BOX
+   ========================= */
 .story {
   position: absolute;
-  left: 50.5%;
+  left: 50%;
   bottom: 180px;
   transform: translateX(-50%);
   width: 900px;
 
   font-family: "Silkscreen";
-  font-size: clamp(22px, 2.1vw, 30px);
-  line-height: 1.18;
+  font-size: 30px;
+  line-height: 1.25;
   color: black;
 
   opacity: 0;
-  transition: opacity 600ms ease;
+  transition: opacity 500ms ease;
   z-index: 25;
 
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-
-  min-height: 120px;
-  padding: 18px 52px 0 52px;
+  min-height: 96px;
+  padding: 16px 50px 0 50px;
   box-sizing: border-box;
-
-  word-break: break-word;
-  overflow: hidden;
 }
 
-.story.visible { opacity: 1; }
+.story.visible {
+  opacity: 1;
+}
 
-/* Button component */
+/* =========================
+   BUTTONS
+   ========================= */
 .button {
   position: relative;
-  cursor: pointer;
   display: inline-block;
+  cursor: pointer;
 }
 
 .button img {
   width: 420px;
   image-rendering: pixelated;
   display: block;
-  pointer-events: none;
 }
 
 .button span {
@@ -106,16 +112,19 @@ body { touch-action: manipulation; }
   inset: 0;
   display: grid;
   place-items: center;
+
   font-family: "Press Start 2P";
-  font-size: clamp(18px, 1.6vw, 28px);
+  font-size: 28px;
   color: black;
+
   pointer-events: none;
-  text-align: center;
   padding: 0 20px;
   line-height: 1.05;
 }
 
-/* Choices row */
+/* =========================
+   CHOICES ROW
+   ========================= */
 .choices {
   position: absolute;
   left: 50%;
@@ -123,23 +132,17 @@ body { touch-action: manipulation; }
   transform: translateX(-50%);
   display: flex;
   gap: 40px;
-  align-items: center;
-  justify-content: center;
   opacity: 0;
-  transition: opacity 700ms ease;
+  transition: opacity 600ms ease;
   z-index: 30;
 }
-.choices.visible { opacity: 1; }
+
+.choices.visible {
+  opacity: 1;
+}
 
 .choice-link {
   text-decoration: none;
   transform: scale(0.84);
   transform-origin: center center;
-  display: inline-block;
-}
-
-/* Optional focus ring */
-.choice-link:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5);
-  outline-offset: 6px;
 }
