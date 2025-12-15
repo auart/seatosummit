@@ -134,9 +134,6 @@ img {
   pointer-events: none;
 }
 
-/* IMPORTANT: prevents drag/scroll gestures from cancelling the press */
-#btnContinue { touch-action: none; }
-
 /* Choice row (2 buttons) */
 .choices {
   position: absolute;
@@ -291,34 +288,37 @@ function typeLine() {
   typing = setInterval(() => {
     char++;
     story.textContent = lines[line].slice(0, char);
+
     if (char >= lines[line].length) {
       clearInterval(typing);
+      char = lines[line].length; /* FIX: lock char to full length */
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
+  /* If mid-typing, finish instantly */
   if (char < lines[line].length) {
-    story.textContent = lines[line];
     clearInterval(typing);
+    story.textContent = lines[line];
+    char = lines[line].length; /* FIX: this was missing, caused freeze */
     if (line === lines.length - 1) showChoices();
     return;
   }
+
+  /* Otherwise go to next line */
   if (line < lines.length - 1) {
     line++;
     typeLine();
   }
 }
 
-/* OPTION 1 FIX: fire on pointerdown + click fallback */
-function onContinue(e) {
+btnContinue.addEventListener("pointerup", (e) => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
-}
-btnContinue.addEventListener("pointerdown", onContinue, { passive: false });
-btnContinue.addEventListener("click", onContinue);
+});
 
 /* Start */
 typeLine();
