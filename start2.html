@@ -185,7 +185,7 @@ window.addEventListener("touchmove", e => e.preventDefault(), { passive:false })
 /* Stage scaling */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
-  const scale = Math.max(window.innerWidth / 1920, window.innerHeight / 1080);
+  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
   stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
 }
 window.addEventListener("resize", scaleStage);
