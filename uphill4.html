@@ -126,9 +126,10 @@ body { touch-action: manipulation; }
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
 }
+
+/* KEY FIX: when hidden, remove it from layout so it can't block clicks */
 .continue-wrap.hidden {
-  opacity: 0;
-  pointer-events: none;
+  display: none;
 }
 
 /* Choices */
@@ -142,8 +143,12 @@ body { touch-action: manipulation; }
   opacity: 0;
   transition: opacity 600ms ease;
   z-index: 30;
+  pointer-events: none; /* don't click until visible */
 }
-.choices.visible { opacity: 1; }
+.choices.visible {
+  opacity: 1;
+  pointer-events: auto; /* clickable when visible */
+}
 
 .choice-link {
   text-decoration: none;
@@ -198,7 +203,7 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Story (Continue button only, fixed early-click issue + does not break choice links) */
+/* Story (Continue button only, fixed early-click issue, choices always clickable) */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -218,7 +223,7 @@ let char = 0;
 let typing = null;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");
+  continueWrap.classList.add("hidden");   // display:none now, so it can't block
   choices.classList.add("visible");
 }
 
@@ -259,19 +264,12 @@ function advanceStory() {
   }
 }
 
-/* IMPORTANT: ignore clicks that happen on the choice area */
+/* Use pointerdown so fast clicks never "miss" */
 btnContinue.addEventListener("pointerdown", (e) => {
-  if (e.target.closest("#choices")) return;
   e.preventDefault();
+  e.stopPropagation();
   advanceStory();
 }, { passive: false });
-
-/* Ensure choice links always work */
-choices.querySelectorAll("a").forEach(a => {
-  a.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-  }, { passive: true });
-});
 
 /* Start */
 story.classList.add("visible");
