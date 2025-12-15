@@ -205,7 +205,7 @@ scaleStage();
 
 /* Audio (simple) */
 const waves = document.getElementById("waves");
-waves.volume = 0.35;
+waves.volume = 0.02;
 waves.play().catch(() => {
   document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
 });
