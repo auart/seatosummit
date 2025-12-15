@@ -202,6 +202,9 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
+/* Prevent weird drag behavior */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -218,7 +221,7 @@ waves.play().catch(() => {
   document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
 });
 
-/* Story typing */
+/* Story typing (FIXED: early clicks can’t break Continue) */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -248,30 +251,42 @@ function typeLine() {
   typing = setInterval(() => {
     char++;
     story.textContent = lines[line].slice(0, char);
+
     if (char >= lines[line].length) {
+      char = lines[line].length;   /* KEY FIX */
       clearInterval(typing);
+      typing = null;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (char < lines[line].length) {
-    story.textContent = lines[line];
+  const currentLen = lines[line].length;
+
+  if (typing) {
     clearInterval(typing);
+    typing = null;
+    char = currentLen;             /* KEY FIX */
+    story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
   }
+
   if (line < lines.length - 1) {
     line++;
     typeLine();
+  } else {
+    showChoices();
   }
 }
 
-btnContinue.addEventListener("pointerup", (e) => {
+/* Use pointerdown so fast clicks always register */
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
+  e.stopPropagation();
   advanceStory();
-});
+}, { passive:false });
 
 /* Start */
 typeLine();
@@ -284,8 +299,8 @@ function addPointsOnce(flag, points) {
   localStorage.setItem(flag, "1");
 }
 
-document.getElementById("btnStream").addEventListener("pointerup", () => addPointsOnce("sts_scored_waterfall1_v1", 1));
-document.getElementById("btnDeeper").addEventListener("pointerup", () => addPointsOnce("sts_scored_palms4_v1", 1));
+document.getElementById("btnStream").addEventListener("pointerdown", () => addPointsOnce("sts_scored_waterfall1_v1", 1));
+document.getElementById("btnDeeper").addEventListener("pointerdown", () => addPointsOnce("sts_scored_palms4_v1", 1));
 </script>
 </body>
 </html>
