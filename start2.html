@@ -22,6 +22,7 @@ html, body {
 
 body { touch-action: manipulation; }
 * { overscroll-behavior: none; }
+img { -webkit-user-drag: none; user-drag: none; }
 
 .app {
   position: fixed;
@@ -128,8 +129,13 @@ body { touch-action: manipulation; }
   opacity: 0;
   transition: opacity 700ms ease;
   z-index: 30;
+
+  pointer-events: none;
 }
-.choices.visible { opacity: 1; }
+.choices.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .choice-link {
   text-decoration: none;
@@ -144,29 +150,29 @@ body { touch-action: manipulation; }
 
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
-      <img class="layer scene" src="starthome.png" alt="">
-      <img class="layer frame" src="stsframe3.png" alt="">
+      <img class="layer scene" src="starthome.png" alt="" draggable="false">
+      <img class="layer frame" src="stsframe3.png" alt="" draggable="false">
 
       <div class="story" id="story"></div>
 
       <div class="choices" id="choices">
         <a class="choice-link" id="btnBeach" href="beach1.html">
           <div class="button">
-            <img src="stsbutton.png" alt="">
+            <img src="stsbutton.png" alt="" draggable="false">
             <span>Follow the beach</span>
           </div>
         </a>
 
         <a class="choice-link" id="btnPalms" href="palms1.html">
           <div class="button">
-            <img src="stsbutton.png" alt="">
+            <img src="stsbutton.png" alt="" draggable="false">
             <span>Enter the palm grove</span>
           </div>
         </a>
 
         <a class="choice-link" id="btnRocks" href="rocky1.html">
           <div class="button">
-            <img src="stsbutton.png" alt="">
+            <img src="stsbutton.png" alt="" draggable="false">
             <span>Explore the rocky shore</span>
           </div>
         </a>
@@ -178,6 +184,9 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
+/* Prevent image drag freeze */
+document.addEventListener("dragstart", e => e.preventDefault());
+
 /* HARD scroll lock */
 window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
 window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
@@ -197,11 +206,13 @@ const TIME_KEY = "sts_waves_time_v1";
 
 waves.volume = 0.35;
 waves.play().catch(() => {
-  document.addEventListener("click", () => waves.play(), { once:true });
+  document.addEventListener("pointerdown", () => waves.play().catch(() => {}), { once:true });
 });
 
 setInterval(() => {
-  localStorage.setItem(TIME_KEY, waves.currentTime);
+  if (!waves.paused && Number.isFinite(waves.currentTime)) {
+    localStorage.setItem(TIME_KEY, waves.currentTime);
+  }
 }, 300);
 
 /* Story typing */
@@ -215,7 +226,7 @@ const lines = [
   "To your right, dark lava rocks jut into the water."
 ];
 
-let line = 0, char = 0, typing;
+let line = 0, char = 0, typing = null;
 
 function typeLine() {
   clearInterval(typing);
@@ -232,8 +243,10 @@ function typeLine() {
   }, 24);
 }
 
-document.addEventListener("click", e => {
+document.addEventListener("pointerdown", e => {
   if (e.target.closest(".choice-link")) return;
+  e.preventDefault();
+
   if (char < lines[line].length) {
     story.textContent = lines[line];
     clearInterval(typing);
@@ -251,7 +264,7 @@ typeLine();
 function addPointsOnce(flag, points) {
   if (localStorage.getItem(flag) === "1") return;
   const total = parseInt(localStorage.getItem("sts_points_v1") || "0", 10);
-  localStorage.setItem("sts_points_v1", total + points);
+  localStorage.setItem("sts_points_v1", String(total + points));
   localStorage.setItem(flag, "1");
 }
 
