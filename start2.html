@@ -33,6 +33,7 @@ img {
   -webkit-user-drag: none;
 }
 
+/* extra: kill weird drag/select behaviors */
 body, .app, .stage-wrapper, .stage {
   -webkit-tap-highlight-color: transparent;
   -webkit-user-drag: none;
@@ -72,7 +73,7 @@ body { touch-action: manipulation; }
   --choices-bottom: 5px;
   --choices-scale: 0.84;
 
-  --continue-bottom: 5px;
+  --continue-bottom: 110px; /* move Continue up/down */
 }
 /* ---------------------------------------- */
 
@@ -134,13 +135,11 @@ body { touch-action: manipulation; }
   cursor: pointer;
   pointer-events: auto;
 }
-
 .button img {
   width: var(--btn-img-w);
   image-rendering: pixelated;
   display: block;
 }
-
 .button span {
   position: absolute;
   inset: 0;
@@ -155,21 +154,22 @@ body { touch-action: manipulation; }
   line-height: 1.05;
 }
 
-/* Continue */
+/* Continue button holder */
 .continue-wrap {
   position: absolute;
   left: 50%;
   bottom: var(--continue-bottom);
   transform: translateX(-50%) scale(var(--choices-scale));
-  z-index: 29;
+  transform-origin: center center;
+  z-index: 999; /* make sure it's on top */
+  opacity: 1;
+  pointer-events: auto; /* clickable */
 }
 
 .continue-wrap.hidden {
   opacity: 0;
-  pointer-events: none;
+  pointer-events: none; /* not clickable when hidden */
 }
-
-#btnContinue { touch-action: none; }
 
 /* Choices */
 .choices {
@@ -182,12 +182,18 @@ body { touch-action: manipulation; }
   opacity: 0;
   transition: opacity 600ms ease;
   z-index: 30;
+
+  pointer-events: none; /* IMPORTANT: disable clicks until visible */
 }
-.choices.visible { opacity: 1; }
+.choices.visible {
+  opacity: 1;
+  pointer-events: auto; /* enable clicks when visible */
+}
 
 .choice-link {
   text-decoration: none;
   transform: scale(var(--choices-scale));
+  transform-origin: center center;
 }
 </style>
 </head>
@@ -237,8 +243,10 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
-document.addEventListener("dragstart", e => e.preventDefault());
+/* extra: prevent drag selecting/page gestures */
+document.addEventListener("dragstart", (e) => e.preventDefault());
 
+/* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
@@ -247,12 +255,14 @@ function scaleStage() {
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
+/* Audio (simple autoplay attempt) */
 const waves = document.getElementById("waves");
 waves.volume = 0.35;
 waves.play().catch(() => {
   document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
 });
 
+/* Story typing (Continue button only) */
 const story = document.getElementById("story");
 const choices = document.getElementById("choices");
 const continueWrap = document.getElementById("continueWrap");
@@ -265,7 +275,9 @@ const lines = [
   "To your right, dark lava rocks jut into the water."
 ];
 
-let line = 0, char = 0, typing = null;
+let line = 0;
+let char = 0;
+let typing = null;
 
 function showChoices() {
   continueWrap.classList.add("hidden");
@@ -282,7 +294,7 @@ function typeLine() {
     story.textContent = lines[line].slice(0, char);
     if (char >= lines[line].length) {
       clearInterval(typing);
-      typing = null;
+      if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
@@ -291,41 +303,38 @@ function advanceStory() {
   if (char < lines[line].length) {
     story.textContent = lines[line];
     clearInterval(typing);
-    typing = null;
     if (line === lines.length - 1) showChoices();
     return;
   }
   if (line < lines.length - 1) {
     line++;
     typeLine();
-  } else {
-    showChoices();
   }
 }
 
-btnContinue.addEventListener("pointerdown", e => {
+/* IMPORTANT: Continue must NOT click through to links underneath */
+btnContinue.addEventListener("pointerup", (e) => {
   e.preventDefault();
-  try { btnContinue.setPointerCapture(e.pointerId); } catch {}
-});
-
-btnContinue.addEventListener("pointerup", e => {
-  e.preventDefault();
+  e.stopPropagation();
+  if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
   advanceStory();
 });
 
+/* Start */
 story.classList.add("visible");
 typeLine();
 
+/* ---------- SCORING (ONE TIME ONLY PER PATH) ---------- */
 function addPointsOnce(flag, points) {
   if (localStorage.getItem(flag)) return;
   const total = parseInt(localStorage.getItem("sts_points_v1") || "0", 10);
-  localStorage.setItem("sts_points_v1", total + points);
+  localStorage.setItem("sts_points_v1", String(total + points));
   localStorage.setItem(flag, "1");
 }
 
-btnBeach.addEventListener("pointerup", () => addPointsOnce("sts_scored_beach_v1", 1));
-btnPalms.addEventListener("pointerup", () => addPointsOnce("sts_scored_palms_v1", 1));
-btnRocks.addEventListener("pointerup", () => addPointsOnce("sts_scored_rocks_v1", 1));
+document.getElementById("btnBeach").addEventListener("pointerup", () => addPointsOnce("sts_scored_beach_v1", 1));
+document.getElementById("btnPalms").addEventListener("pointerup", () => addPointsOnce("sts_scored_palms_v1", 1));
+document.getElementById("btnRocks").addEventListener("pointerup", () => addPointsOnce("sts_scored_rocks_v1", 1));
 </script>
 </body>
 </html>
