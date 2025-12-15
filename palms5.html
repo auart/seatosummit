@@ -22,9 +22,9 @@ html, body {
 
 * {
   overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
-  -webkit-tap-highlight-color: transparent;
 }
 
 body { touch-action: manipulation; }
@@ -60,12 +60,13 @@ body { touch-action: manipulation; }
   height: 1080px;
   image-rendering: pixelated;
   pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* Story box */
+/* Story */
 .story {
   position: absolute;
   left: 50%;
@@ -82,13 +83,15 @@ body { touch-action: manipulation; }
   transition: opacity 500ms ease;
   z-index: 25;
 
-  min-height: 120px;
+  min-height: 160px;
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
+
+  white-space: pre-line;
 }
 .story.visible { opacity: 1; }
 
-/* Buttons */
+/* Button component */
 .button {
   position: relative;
   display: inline-block;
@@ -99,6 +102,7 @@ body { touch-action: manipulation; }
   width: 420px;
   image-rendering: pixelated;
   display: block;
+  pointer-events: none;
 }
 
 .button span {
@@ -107,15 +111,13 @@ body { touch-action: manipulation; }
   display: grid;
   place-items: center;
   font-family: "Press Start 2P";
-  font-size: 28px;
+  font-size: 26px;
   color: black;
   pointer-events: none;
   padding: 0 20px;
   text-align: center;
   line-height: 1.05;
-
   letter-spacing: -1px;
-  word-spacing: -6px;
 }
 
 /* Choices */
@@ -145,15 +147,13 @@ body { touch-action: manipulation; }
 
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
-
       <img class="layer scene" src="palms5i.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
       <div class="story visible" id="story"></div>
 
       <div class="choices visible" id="choices">
-
-        <!-- Back (LEFT) -->
+        <!-- Back on the left -->
         <a class="choice-link" href="palms4.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
@@ -161,7 +161,7 @@ body { touch-action: manipulation; }
           </div>
         </a>
 
-        <!-- Enter Cave (MIDDLE) -->
+        <!-- Continue options on the right -->
         <a class="choice-link" href="cave1.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
@@ -169,21 +169,17 @@ body { touch-action: manipulation; }
           </div>
         </a>
 
-        <!-- Continue Up Hill (RIGHT) -->
-        <a class="choice-link" href="summit1.html">
+        <a class="choice-link" href="uphill1.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Continue Up the Hill</span>
           </div>
         </a>
-
       </div>
-
     </div>
   </div>
 
   <audio id="palmsAudio" src="palms.mp3" preload="auto" loop></audio>
-
 </div>
 
 <script>
@@ -196,37 +192,25 @@ function scaleStage() {
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Audio persistence */
+/* Seamless palms audio */
 const audio = document.getElementById("palmsAudio");
-const TIME_KEY = "sts_palms_time_v1";
-const VOL_KEY  = "sts_palms_vol_v1";
-
-const savedTime = parseFloat(localStorage.getItem(TIME_KEY));
-const savedVol  = parseFloat(localStorage.getItem(VOL_KEY));
-
-audio.volume = Number.isFinite(savedVol) ? savedVol : 0.5;
-if (Number.isFinite(savedTime)) {
-  try { audio.currentTime = savedTime; } catch(e){}
-}
+audio.volume = 0.6;
 
 audio.play().catch(() => {
-  document.addEventListener("pointerup", () => audio.play(), { once:true });
+  document.addEventListener("pointerup", () => {
+    audio.play().catch(()=>{});
+  }, { once:true });
 });
-
-setInterval(() => {
-  if (!audio.paused) {
-    localStorage.setItem(TIME_KEY, audio.currentTime);
-    localStorage.setItem(VOL_KEY, audio.volume);
-  }
-}, 250);
 
 /* Story text */
 const story = document.getElementById("story");
-story.textContent =
-  "The grove narrows again until the trees part around a rocky rise. " +
-  "At its base, half-hidden by vines and shadow, an opening leads into a cave.\n\n" +
-  "You can continue up the hill... or step inside the cave.";
-</script>
 
+story.textContent =
+`The grove narrows again until the trees part around a rocky rise.
+At its base, half-hidden by vines and shadow, an opening leads into a cave.
+
+You can continue up the hill…
+or step inside the cave.`;
+</script>
 </body>
 </html>
