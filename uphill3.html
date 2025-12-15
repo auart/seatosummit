@@ -65,7 +65,7 @@ body { touch-action: manipulation; }
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* Story box */
+/* Story */
 .story {
   position: absolute;
   left: 50%;
@@ -93,7 +93,6 @@ body { touch-action: manipulation; }
   position: relative;
   display: inline-block;
   cursor: pointer;
-  pointer-events: auto;
 }
 
 .button img {
@@ -201,20 +200,19 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
-/* Prevent weird drag behavior */
-document.addEventListener("dragstart", (e) => e.preventDefault());
+/* Prevent drag weirdness */
+document.addEventListener("dragstart", e => e.preventDefault());
 
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+  stageWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
 window.addEventListener("resize", scaleStage);
-window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Story logic (Continue button only, fixed early-click issue) */
+/* Story */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -234,6 +232,7 @@ let typing = null;
 
 function showChoices() {
   continueWrap.classList.add("hidden");
+  continueWrap.style.display = "none";   // CRITICAL FIX
   choices.classList.add("visible");
 }
 
@@ -257,7 +256,6 @@ function typeLine() {
 }
 
 function advanceStory() {
-  // If still typing, finish instantly (no freeze)
   if (typing) {
     clearInterval(typing);
     typing = null;
@@ -267,7 +265,6 @@ function advanceStory() {
     return;
   }
 
-  // Next line
   if (line < lines.length - 1) {
     line++;
     typeLine();
@@ -276,12 +273,17 @@ function advanceStory() {
   }
 }
 
-/* Use pointerdown so spam-clicking never “misses” */
-btnContinue.addEventListener("pointerdown", (e) => {
+/* Continue button */
+btnContinue.addEventListener("pointerdown", e => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
-}, { passive: false });
+}, { passive:false });
+
+/* Ensure choices always receive clicks */
+choices.querySelectorAll("a").forEach(a => {
+  a.addEventListener("pointerdown", e => e.stopPropagation(), { passive:true });
+});
 
 /* Start */
 story.classList.add("visible");
