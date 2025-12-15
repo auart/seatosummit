@@ -44,6 +44,37 @@ body {
   overflow: hidden;
 }
 
+/* ---------- THE "CSS THINGY" (EDIT ONCE, UPDATES EVERY PAGE) ---------- */
+:root{
+  /* stage */
+  --stage-w: 1920px;
+  --stage-h: 1080px;
+
+  /* story box */
+  --story-width: 900px;
+  --story-bottom: 180px;
+  --story-font: "Silkscreen";
+  --story-size: 30px;
+  --story-line: 1.25;
+  --story-color: black;
+  --story-minh: 96px;
+  --story-pad-top: 16px;
+  --story-pad-x: 50px;
+
+  /* button text */
+  --btn-font: "Press Start 2P";
+  --btn-size: 28px;
+  --btn-color: black;
+  --btn-pad-x: 20px;
+
+  /* button image + row */
+  --btn-img-w: 420px;
+  --choices-gap: 40px;
+  --choices-bottom: 5px;
+  --choices-scale: 0.84;
+}
+/* --------------------------------------------------------------------- */
+
 /* Stage scaling */
 .stage-wrapper {
   position: absolute;
@@ -51,21 +82,21 @@ body {
   top: 50%;
   transform: translate(-50%, -50%) scale(1);
   transform-origin: center center;
-  width: 1920px;
-  height: 1080px;
+  width: var(--stage-w);
+  height: var(--stage-h);
 }
 
 .stage {
   position: relative;
-  width: 1920px;
-  height: 1080px;
+  width: var(--stage-w);
+  height: var(--stage-h);
 }
 
 .layer {
   position: absolute;
   inset: 0;
-  width: 1920px;
-  height: 1080px;
+  width: var(--stage-w);
+  height: var(--stage-h);
   image-rendering: pixelated;
 }
 
@@ -76,21 +107,21 @@ body {
 .story {
   position: absolute;
   left: 50%;
-  bottom: 180px;
+  bottom: var(--story-bottom);
   transform: translateX(-50%);
-  width: 900px;
+  width: var(--story-width);
 
-  font-family: "Silkscreen";
-  font-size: 30px;
-  line-height: 1.25;
-  color: black;
+  font-family: var(--story-font);
+  font-size: var(--story-size);
+  line-height: var(--story-line);
+  color: var(--story-color);
 
   opacity: 0;
   transition: opacity 500ms ease;
   z-index: 25;
 
-  min-height: 96px;
-  padding: 16px 50px 0 50px;
+  min-height: var(--story-minh);
+  padding: var(--story-pad-top) var(--story-pad-x) 0 var(--story-pad-x);
   box-sizing: border-box;
 }
 
@@ -104,7 +135,7 @@ body {
 }
 
 .button img {
-  width: 420px;
+  width: var(--btn-img-w);
   image-rendering: pixelated;
   display: block;
 }
@@ -114,21 +145,23 @@ body {
   inset: 0;
   display: grid;
   place-items: center;
-  font-family: "Press Start 2P";
-  font-size: 28px;
-  color: black;
+  font-family: var(--btn-font);
+  font-size: var(--btn-size);
+  color: var(--btn-color);
   pointer-events: none;
-  padding: 0 20px;
+  padding: 0 var(--btn-pad-x);
+  text-align: center;
+  line-height: 1.05;
 }
 
 /* Choices */
 .choices {
   position: absolute;
   left: 50%;
-  bottom: 5px;
+  bottom: var(--choices-bottom);
   transform: translateX(-50%);
   display: flex;
-  gap: 40px;
+  gap: var(--choices-gap);
   opacity: 0;
   transition: opacity 600ms ease;
   z-index: 30;
@@ -137,7 +170,8 @@ body {
 
 .choice-link {
   text-decoration: none;
-  transform: scale(0.84);
+  transform: scale(var(--choices-scale));
+  transform-origin: center center;
 }
 </style>
 </head>
