@@ -20,39 +20,31 @@ html, body {
   inset: 0;
 }
 
-/* HARD LOCKS */
 * {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  overscroll-behavior: none;
 }
 
-img {
-  pointer-events: none;
-  -webkit-user-drag: none;
-}
-
-body {
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
+body { touch-action: manipulation; }
 
 .app {
   position: fixed;
   inset: 0;
   background: black;
+  overflow: hidden;
 }
 
-/* STAGE */
+/* Stage scaling */
 .stage-wrapper {
   position: absolute;
   left: 50%;
   top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
   width: 1920px;
   height: 1080px;
-  transform: translate(-50%, -50%) scale(1);
-  transform-origin: center;
 }
 
 .stage {
@@ -67,12 +59,14 @@ body {
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* STORY BOX */
+/* Story */
 .story {
   position: absolute;
   left: 50%;
@@ -85,17 +79,17 @@ body {
   line-height: 1.25;
   color: black;
 
-  padding: 16px 50px 0 50px;
-  min-height: 96px;
-
   opacity: 0;
-  transition: opacity 400ms ease;
+  transition: opacity 500ms ease;
   z-index: 25;
-}
 
+  min-height: 96px;
+  padding: 16px 50px 0 50px;
+  box-sizing: border-box;
+}
 .story.visible { opacity: 1; }
 
-/* BUTTON BASE */
+/* Button component */
 .button {
   position: relative;
   display: inline-block;
@@ -106,6 +100,7 @@ body {
   width: 420px;
   image-rendering: pixelated;
   display: block;
+  pointer-events: none;
 }
 
 .button span {
@@ -113,31 +108,29 @@ body {
   inset: 0;
   display: grid;
   place-items: center;
-
   font-family: "Press Start 2P";
   font-size: 28px;
   color: black;
-
   pointer-events: none;
   padding: 0 20px;
   text-align: center;
+  line-height: 1.05;
 }
 
-/* CONTINUE */
+/* Continue button — same position as middle choice */
 .continue-wrap {
   position: absolute;
   left: 50%;
-  bottom: 90px;
+  bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
 }
-
 .continue-wrap.hidden {
   opacity: 0;
   pointer-events: none;
 }
 
-/* CHOICES */
+/* Choices */
 .choices {
   position: absolute;
   left: 50%;
@@ -145,34 +138,29 @@ body {
   transform: translateX(-50%);
   display: flex;
   gap: 40px;
-
   opacity: 0;
-  pointer-events: none;
-  transition: opacity 500ms ease;
+  transition: opacity 600ms ease;
   z-index: 30;
 }
-
-.choices.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
+.choices.visible { opacity: 1; }
 
 .choice-link {
   text-decoration: none;
   transform: scale(0.84);
+  transform-origin: center center;
 }
 </style>
 </head>
 
 <body>
 <div class="app">
+
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
-
       <img class="layer scene" src="starthome.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <div class="story" id="story"></div>
+      <div class="story visible" id="story"></div>
 
       <div class="continue-wrap" id="continueWrap">
         <div class="button" id="btnContinue">
@@ -203,7 +191,6 @@ body {
           </div>
         </a>
       </div>
-
     </div>
   </div>
 
@@ -211,27 +198,27 @@ body {
 </div>
 
 <script>
-/* SCALE */
+/* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
 }
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* AUDIO */
+/* Audio */
 const waves = document.getElementById("waves");
 waves.volume = 0.35;
 waves.play().catch(() => {
-  document.addEventListener("pointerup", () => waves.play(), { once:true });
+  document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
 });
 
-/* STORY */
+/* Story typing */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
-const btnContinue = document.getElementById("btnContinue");
 const choices = document.getElementById("choices");
+const btnContinue = document.getElementById("btnContinue");
 
 const lines = [
   "You take a moment to get your bearings.",
@@ -244,6 +231,11 @@ let line = 0;
 let char = 0;
 let typing = null;
 
+function showChoices() {
+  continueWrap.classList.add("hidden");
+  choices.classList.add("visible");
+}
+
 function typeLine() {
   clearInterval(typing);
   story.textContent = "";
@@ -254,38 +246,37 @@ function typeLine() {
     story.textContent = lines[line].slice(0, char);
     if (char >= lines[line].length) {
       clearInterval(typing);
-      if (line === lines.length - 1) {
-        continueWrap.classList.add("hidden");
-        choices.classList.add("visible");
-      }
+      if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
-btnContinue.addEventListener("pointerup", (e) => {
-  e.preventDefault();
-
+function advanceStory() {
   if (char < lines[line].length) {
     story.textContent = lines[line];
     clearInterval(typing);
+    if (line === lines.length - 1) showChoices();
     return;
   }
-
   if (line < lines.length - 1) {
     line++;
     typeLine();
   }
+}
+
+btnContinue.addEventListener("pointerup", (e) => {
+  e.preventDefault();
+  advanceStory();
 });
 
-/* START */
-story.classList.add("visible");
+/* Start */
 typeLine();
 
-/* ONE-TIME SCORING */
+/* One-time scoring */
 function addPointsOnce(flag, points) {
-  if (localStorage.getItem(flag)) return;
+  if (localStorage.getItem(flag) === "1") return;
   const total = parseInt(localStorage.getItem("sts_points_v1") || "0", 10);
-  localStorage.setItem("sts_points_v1", total + points);
+  localStorage.setItem("sts_points_v1", String(total + points));
   localStorage.setItem(flag, "1");
 }
 
