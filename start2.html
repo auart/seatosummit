@@ -118,9 +118,7 @@ body { touch-action: manipulation; }
 }
 
 /* Continue button text slightly larger */
-#btnContinue span {
-  font-size: 30px;
-}
+#btnContinue span { font-size: 30px; }
 
 /* Continue button */
 .continue-wrap {
@@ -133,6 +131,7 @@ body { touch-action: manipulation; }
 .continue-wrap.hidden {
   opacity: 0;
   pointer-events: none;
+  visibility: hidden;
 }
 
 /* Choices */
@@ -144,15 +143,20 @@ body { touch-action: manipulation; }
   display: flex;
   gap: 40px;
   opacity: 0;
+  pointer-events: none;         /* RULE: don't allow clicks until shown */
   transition: opacity 600ms ease;
   z-index: 30;
 }
-.choices.visible { opacity: 1; }
+.choices.visible {
+  opacity: 1;
+  pointer-events: auto;         /* RULE: only clickable when visible */
+}
 
 .choice-link {
   text-decoration: none;
   transform: scale(0.84);
   transform-origin: center center;
+  display: inline-block;
 }
 </style>
 </head>
@@ -203,6 +207,9 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
+/* Prevent weird drag behavior */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -210,6 +217,7 @@ function scaleStage() {
   stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
 }
 window.addEventListener("resize", scaleStage);
+window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
 /* Audio */
@@ -217,11 +225,11 @@ const waves = document.getElementById("waves");
 waves.volume = 0.35;
 waves.play().catch(() => {
   document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
+  document.addEventListener("keydown", () => waves.play().catch(()=>{}), { once:true });
 });
 
-/* Story typing */
+/* Story typing (RULE: spam-click safe) */
 const story = document.getElementById("story");
-const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
 const btnContinue = document.getElementById("btnContinue");
 
@@ -237,44 +245,61 @@ let char = 0;
 let typing = null;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");
   choices.classList.add("visible");
+
+  /* RULE: remove Continue overlay so it can’t block choices */
+  const cw = document.getElementById("continueWrap");
+  if (cw) cw.remove();
 }
 
 function typeLine() {
-  clearInterval(typing);
+  if (typing) clearInterval(typing);
+  typing = null;
   story.textContent = "";
   char = 0;
 
   typing = setInterval(() => {
     char++;
     story.textContent = lines[line].slice(0, char);
+
     if (char >= lines[line].length) {
+      char = lines[line].length;
       clearInterval(typing);
+      typing = null;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (char < lines[line].length) {
-    story.textContent = lines[line];
+  /* If still typing, finish instantly */
+  if (typing) {
     clearInterval(typing);
+    typing = null;
+    char = lines[line].length;
+    story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
   }
+
+  /* Next line */
   if (line < lines.length - 1) {
     line++;
     typeLine();
+  } else {
+    showChoices();
   }
 }
 
-btnContinue.addEventListener("pointerup", (e) => {
+/* pointerdown = best for spam clicking */
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
+  e.stopPropagation();
   advanceStory();
-});
+}, { passive:false });
 
 /* Start */
+story.classList.add("visible");
 typeLine();
 
 /* One-time scoring */
@@ -285,9 +310,9 @@ function addPointsOnce(flag, points) {
   localStorage.setItem(flag, "1");
 }
 
-btnBeach.addEventListener("pointerup", () => addPointsOnce("sts_scored_beach_v1", 1));
-btnPalms.addEventListener("pointerup", () => addPointsOnce("sts_scored_palms_v1", 1));
-btnRocks.addEventListener("pointerup", () => addPointsOnce("sts_scored_rocks_v1", 1));
+document.getElementById("btnBeach").addEventListener("pointerdown", () => addPointsOnce("sts_scored_beach_v1", 1));
+document.getElementById("btnPalms").addEventListener("pointerdown", () => addPointsOnce("sts_scored_palms_v1", 1));
+document.getElementById("btnRocks").addEventListener("pointerdown", () => addPointsOnce("sts_scored_rocks_v1", 1));
 </script>
 </body>
 </html>
