@@ -117,7 +117,12 @@ body { touch-action: manipulation; }
   line-height: 1.05;
 }
 
-/* Continue button — same position as middle choice */
+/* ONLY the Look Around / Continue button */
+#btnContinue span {
+  font-size: 30px;
+}
+
+/* Continue button */
 .continue-wrap {
   position: absolute;
   left: 50%;
@@ -165,7 +170,7 @@ body { touch-action: manipulation; }
       <div class="continue-wrap" id="continueWrap">
         <div class="button" id="btnContinue">
           <img src="stsbutton.png" alt="">
-          <span>Continue</span>
+          <span>Look Around</span>
         </div>
       </div>
 
