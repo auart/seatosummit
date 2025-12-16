@@ -42,6 +42,16 @@ img {
   overflow: hidden;
 }
 
+/* ---------- UNIVERSAL HIDE RULES (no accidental clicks) ---------- */
+.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.is-gone {
+  display: none !important;
+}
+/* --------------------------------------------------------------- */
+
 /* Stage scaling */
 .stage-wrapper {
   position: absolute;
@@ -128,10 +138,9 @@ img {
   transform: translateX(-50%) scale(0.84);
   transform-origin: center center;
   z-index: 40;
-}
-.continue-wrap.hidden {
-  opacity: 0;
-  pointer-events: none;
+
+  opacity: 1;
+  transition: opacity 250ms ease;
 }
 
 /* Choice row (2 buttons) */
@@ -144,6 +153,7 @@ img {
   gap: 40px;
   align-items: center;
   justify-content: center;
+
   opacity: 0;
   transition: opacity 600ms ease;
   z-index: 30;
@@ -176,7 +186,7 @@ img {
         </div>
       </div>
 
-      <div class="choices" id="choices">
+      <div class="choices is-hidden is-gone" id="choices">
         <a class="choice-link" id="btnBack" href="start2.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
@@ -200,6 +210,16 @@ img {
 <script>
 /* Prevent weird drag behavior */
 document.addEventListener("dragstart", (e) => e.preventDefault());
+
+/* Helpers: fade out then fully remove (no accidental clicks) */
+function hideAndGone(el, fadeMs = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), fadeMs);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
 
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
@@ -259,7 +279,7 @@ function addPointsOnce(flag, points) {
 }
 addPointsOnce("sts_scored_palms1_v1", 1);
 
-/* Story typing using Continue button only */
+/* Story typing using Continue button only (spam-click safe) */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const btnContinue = document.getElementById("btnContinue");
@@ -274,51 +294,67 @@ const lines = [
 let line = 0;
 let char = 0;
 let typing = null;
+let isTyping = false;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");
+  hideAndGone(continueWrap, 250);
   choices.classList.add("visible");
+  showFromGone(choices); // removes display:none and pointer-block
 }
 
 function typeLine() {
-  clearInterval(typing);
+  if (typing) clearInterval(typing);
+  typing = null;
+
   story.textContent = "";
   char = 0;
+  isTyping = true;
+
+  const current = lines[line];
 
   typing = setInterval(() => {
     char++;
-    story.textContent = lines[line].slice(0, char);
+    story.textContent = current.slice(0, char);
 
-    if (char >= lines[line].length) {
+    if (char >= current.length) {
+      char = current.length;
       clearInterval(typing);
-      char = lines[line].length; /* FIX: lock char to full length */
+      typing = null;
+      isTyping = false;
+
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  /* If mid-typing, finish instantly */
-  if (char < lines[line].length) {
-    clearInterval(typing);
-    story.textContent = lines[line];
-    char = lines[line].length; /* FIX: this was missing, caused freeze */
+  const current = lines[line];
+
+  // Finish instantly if typing
+  if (isTyping) {
+    if (typing) clearInterval(typing);
+    typing = null;
+    isTyping = false;
+    char = current.length;
+    story.textContent = current;
+
     if (line === lines.length - 1) showChoices();
     return;
   }
 
-  /* Otherwise go to next line */
+  // Next line
   if (line < lines.length - 1) {
     line++;
     typeLine();
   }
 }
 
-btnContinue.addEventListener("pointerup", (e) => {
+/* pointerdown = spam-click safe, never misses */
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
-});
+}, { passive:false });
 
 /* Start */
 typeLine();
