@@ -29,12 +29,30 @@ html, body {
 
 body { touch-action: manipulation; }
 
+img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+/* HARD scroll lock backup */
+html, body { overscroll-behavior: none; }
+
 .app {
   position: fixed;
   inset: 0;
   background: black;
   overflow: hidden;
 }
+
+/* ---------- GLOBAL SAFE HIDING ---------- */
+.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.is-gone {
+  display: none !important;
+}
+/* -------------------------------------- */
 
 /* Stage scaling */
 .stage-wrapper {
@@ -59,8 +77,6 @@ body { touch-action: manipulation; }
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
-  pointer-events: none;
-  -webkit-user-drag: none;
 }
 
 .scene { z-index: 1; }
@@ -103,7 +119,6 @@ body { touch-action: manipulation; }
   width: 420px;
   image-rendering: pixelated;
   display: block;
-  pointer-events: none;
 }
 .button span {
   position: absolute;
@@ -122,17 +137,14 @@ body { touch-action: manipulation; }
   letter-spacing: -1px;
 }
 
-/* Continue button (same position as middle choice) */
+/* Continue button */
 .continue-wrap {
   position: absolute;
   left: 50%;
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
-}
-.continue-wrap.hidden {
-  opacity: 0;
-  pointer-events: none;
+  transition: opacity 250ms ease;
 }
 
 /* Choices */
@@ -174,7 +186,8 @@ body { touch-action: manipulation; }
         </div>
       </div>
 
-      <div class="choices" id="choices">
+      <!-- start fully gone so it can't be clicked early -->
+      <div class="choices is-hidden is-gone" id="choices">
         <a class="choice-link" id="btnBack" href="palms5.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
@@ -193,7 +206,6 @@ body { touch-action: manipulation; }
     </div>
   </div>
 
-  <!-- Seamless audio -->
   <audio id="waves" src="palms.mp3" preload="auto" loop></audio>
 
 </div>
@@ -202,11 +214,21 @@ body { touch-action: manipulation; }
 /* Prevent weird drag behavior */
 document.addEventListener("dragstart", (e) => e.preventDefault());
 
+/* Hide helpers */
+function hideAndGone(el, ms = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), ms);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
+
 /* Stage scaling */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+  stageWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
 window.addEventListener("resize", scaleStage);
 scaleStage();
@@ -225,19 +247,16 @@ function restoreAudio() {
 
   const savedSrc = localStorage.getItem(SRC_KEY);
   const savedTime = parseFloat(localStorage.getItem(TIME_KEY));
-  const thisSrc = waves.getAttribute("src");
 
-  if (savedSrc === thisSrc) {
-    if (Number.isFinite(savedTime) && savedTime > 0) {
-      try { waves.currentTime = savedTime; } catch(e){}
-    }
+  if (savedSrc === waves.src && Number.isFinite(savedTime) && savedTime > 0) {
+    try { waves.currentTime = savedTime; } catch(e){}
   }
 
   const p = waves.play();
   if (p && typeof p.catch === "function") {
     p.catch(() => {
       const resume = () => waves.play().catch(()=>{});
-      document.addEventListener("pointerup", resume, { once:true });
+      document.addEventListener("pointerdown", resume, { once:true });
       document.addEventListener("keydown", resume, { once:true });
     });
   }
@@ -248,7 +267,7 @@ function startSavingAudio() {
     if (!waves.paused && Number.isFinite(waves.currentTime)) {
       localStorage.setItem(TIME_KEY, String(waves.currentTime));
       localStorage.setItem(VOL_KEY, String(waves.volume));
-      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
+      localStorage.setItem(SRC_KEY, waves.src);
     }
   }, 250);
 
@@ -256,7 +275,7 @@ function startSavingAudio() {
     if (Number.isFinite(waves.currentTime)) {
       localStorage.setItem(TIME_KEY, String(waves.currentTime));
       localStorage.setItem(VOL_KEY, String(waves.volume));
-      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
+      localStorage.setItem(SRC_KEY, waves.src);
     }
   });
 
@@ -264,7 +283,7 @@ function startSavingAudio() {
     if (Number.isFinite(waves.currentTime)) {
       localStorage.setItem(TIME_KEY, String(waves.currentTime));
       localStorage.setItem(VOL_KEY, String(waves.volume));
-      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
+      localStorage.setItem(SRC_KEY, waves.src);
     }
   });
 }
@@ -272,7 +291,7 @@ function startSavingAudio() {
 restoreAudio();
 startSavingAudio();
 
-/* ---------- STORY (Continue button only, FIXED) ---------- */
+/* ---------- STORY (Continue button only, spam-click safe) ---------- */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -287,10 +306,12 @@ const lines = [
 let line = 0;
 let char = 0;
 let typing = null;
+let isTyping = false;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");
+  hideAndGone(continueWrap);
   choices.classList.add("visible");
+  showFromGone(choices);
 }
 
 function typeLine() {
@@ -299,6 +320,7 @@ function typeLine() {
 
   story.textContent = "";
   char = 0;
+  isTyping = true;
 
   typing = setInterval(() => {
     char++;
@@ -308,19 +330,21 @@ function typeLine() {
       char = lines[line].length;
       clearInterval(typing);
       typing = null;
+      isTyping = false;
+
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  const currentLen = lines[line].length;
-
-  if (typing) {
-    clearInterval(typing);
+  if (isTyping) {
+    if (typing) clearInterval(typing);
     typing = null;
-    char = currentLen;
+    isTyping = false;
+    char = lines[line].length;
     story.textContent = lines[line];
+
     if (line === lines.length - 1) showChoices();
     return;
   }
@@ -333,7 +357,6 @@ function advanceStory() {
   }
 }
 
-/* pointerdown makes fast clicks reliable */
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
