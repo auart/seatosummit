@@ -29,12 +29,27 @@ html, body {
 
 body { touch-action: manipulation; }
 
+img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
 .app {
   position: fixed;
   inset: 0;
   background: black;
   overflow: hidden;
 }
+
+/* ---------- GLOBAL SAFE HIDING ---------- */
+.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.is-gone {
+  display: none !important;
+}
+/* -------------------------------------- */
 
 /* Stage scaling */
 .stage-wrapper {
@@ -94,14 +109,12 @@ body { touch-action: manipulation; }
   display: inline-block;
   cursor: pointer;
 }
-
 .button img {
   width: 420px;
   image-rendering: pixelated;
   display: block;
   pointer-events: none;
 }
-
 .button span {
   position: absolute;
   inset: 0;
@@ -124,10 +137,7 @@ body { touch-action: manipulation; }
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
-}
-.continue-wrap.hidden {
-  opacity: 0;
-  pointer-events: none;
+  transition: opacity 250ms ease;
 }
 
 /* Choices */
@@ -150,6 +160,9 @@ body { touch-action: manipulation; }
   transform-origin: center center;
   display: inline-block;
 }
+
+/* Slightly smaller labels so 3 fit better */
+.choices .button span { font-size: 20px; padding: 0 18px; }
 </style>
 </head>
 
@@ -171,7 +184,8 @@ body { touch-action: manipulation; }
         </div>
       </div>
 
-      <div class="choices" id="choices">
+      <!-- start fully non-clickable -->
+      <div class="choices is-hidden is-gone" id="choices">
         <a class="choice-link" href="uphill2.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
@@ -179,14 +193,14 @@ body { touch-action: manipulation; }
           </div>
         </a>
 
-        <a class="choice-link" href="uphill4.html">
+        <a class="choice-link" href="uphill4_slow.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Take It Slow and Steady</span>
           </div>
         </a>
 
-        <a class="choice-link" href="uphill4.html">
+        <a class="choice-link" href="uphill4_scramble.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Scramble Up the Rocks</span>
@@ -203,6 +217,16 @@ body { touch-action: manipulation; }
 /* Prevent drag weirdness */
 document.addEventListener("dragstart", e => e.preventDefault());
 
+/* Utility hide/show */
+function hideAndGone(el, delay = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), delay);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
+
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -210,6 +234,7 @@ function scaleStage() {
   stageWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
 window.addEventListener("resize", scaleStage);
+window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
 /* Story */
@@ -229,18 +254,19 @@ const lines = [
 let line = 0;
 let char = 0;
 let typing = null;
+let isTyping = false;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");
-  continueWrap.style.display = "none";   // CRITICAL FIX
+  hideAndGone(continueWrap);
   choices.classList.add("visible");
+  showFromGone(choices);
 }
 
 function typeLine() {
   if (typing) clearInterval(typing);
-  typing = null;
   story.textContent = "";
   char = 0;
+  isTyping = true;
 
   typing = setInterval(() => {
     char++;
@@ -250,16 +276,17 @@ function typeLine() {
       char = lines[line].length;
       clearInterval(typing);
       typing = null;
+      isTyping = false;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (typing) {
+  if (isTyping) {
     clearInterval(typing);
     typing = null;
-    char = lines[line].length;
+    isTyping = false;
     story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
@@ -279,11 +306,6 @@ btnContinue.addEventListener("pointerdown", e => {
   e.stopPropagation();
   advanceStory();
 }, { passive:false });
-
-/* Ensure choices always receive clicks */
-choices.querySelectorAll("a").forEach(a => {
-  a.addEventListener("pointerdown", e => e.stopPropagation(), { passive:true });
-});
 
 /* Start */
 story.classList.add("visible");
