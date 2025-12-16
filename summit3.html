@@ -34,7 +34,11 @@ body { touch-action: manipulation; }
   overflow: hidden;
 }
 
-/* Stage scaling */
+/* ---------- SAFETY CLASSES ---------- */
+.is-hidden { opacity: 0 !important; pointer-events: none !important; }
+.is-gone { display: none !important; }
+/* ---------------------------------- */
+
 .stage-wrapper {
   position: absolute;
   left: 50%;
@@ -51,11 +55,9 @@ body { touch-action: manipulation; }
   height: 1080px;
 }
 
-/* Base layers */
 .layer {
   position: absolute;
-  left: 0;
-  top: 0;
+  inset: 0;
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
@@ -66,41 +68,34 @@ body { touch-action: manipulation; }
 .mushLayer { z-index: 6; }
 .frame { z-index: 10; }
 
-/* Story */
 .story {
   position: absolute;
-  left: 50.5%;
+  left: 50%;
   bottom: 180px;
   transform: translateX(-50%);
   width: 900px;
-
   font-family: Silkscreen;
   font-size: 26px;
   line-height: 1.25;
   color: black;
-
-  opacity: 0;
-  transition: opacity 600ms ease;
   z-index: 25;
-
   min-height: 96px;
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 500ms ease;
 }
 .story.visible { opacity: 1; }
 
-/* Button component */
 .button {
   position: relative;
   cursor: pointer;
   display: inline-block;
-  pointer-events: auto;
 }
 
 .button img {
   width: 420px;
   image-rendering: pixelated;
-  display: block;
   pointer-events: none;
 }
 
@@ -113,22 +108,17 @@ body { touch-action: manipulation; }
   font-size: 28px;
   color: black;
   pointer-events: none;
-  text-align: center;
-  padding: 0 20px;
-  line-height: 1.05;
-  letter-spacing: -1px;
 }
 
-/* Continue button */
 .continue-wrap {
   position: absolute;
   left: 50%;
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
+  transition: opacity 250ms ease;
 }
 
-/* Choices row */
 .choices {
   position: absolute;
   left: 50%;
@@ -136,13 +126,10 @@ body { touch-action: manipulation; }
   transform: translateX(-50%);
   display: flex;
   gap: 20px;
-  align-items: center;
-  justify-content: center;
   z-index: 30;
-
   opacity: 0;
   pointer-events: none;
-  transition: opacity 700ms ease;
+  transition: opacity 600ms ease;
 }
 .choices.visible {
   opacity: 1;
@@ -152,50 +139,12 @@ body { touch-action: manipulation; }
 .choice-link {
   text-decoration: none;
   transform: scale(0.84);
-  transform-origin: center center;
 }
 
-.choice-link:focus-visible {
-  outline: 2px solid rgba(255,255,255,0.5);
-  outline-offset: 6px;
-}
-
-/* Mushroom hotspot */
 .mushHotspot {
   position: absolute;
   z-index: 20;
   cursor: pointer;
-  pointer-events: auto;
-  background: rgba(255,255,255,0);
-  border-radius: 8px;
-}
-
-/* Flash + glitch */
-.flash {
-  position: fixed;
-  inset: 0;
-  background: white;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 9999;
-}
-.flash.on { animation: abductFlash 520ms ease-in-out forwards; }
-
-@keyframes abductFlash {
-  0%   { opacity: 0; }
-  20%  { opacity: 1; }
-  60%  { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-.stage.glitch { animation: abductGlitch 520ms ease-in-out; }
-
-@keyframes abductGlitch {
-  0%   { transform: translateZ(0); filter: none; }
-  20%  { transform: translate(3px, -2px); filter: contrast(1.2) brightness(1.05); }
-  35%  { transform: translate(-4px, 2px); filter: contrast(1.35) brightness(1.1); }
-  55%  { transform: translate(2px, 1px); filter: contrast(1.15) brightness(1.02); }
-  100% { transform: translateZ(0); filter: none; }
 }
 </style>
 </head>
@@ -203,216 +152,138 @@ body { touch-action: manipulation; }
 <body>
 <div class="app">
 
-  <div class="stage-wrapper" id="stageWrapper">
-    <div class="stage" id="stage">
-      <img class="layer scene" src="summit3i.png" alt="">
-      <img class="layer mushLayer" src="mushroom.png" alt="">
-      <img class="layer frame" src="stsframe3.png" alt="">
+<div class="stage-wrapper" id="stageWrapper">
+<div class="stage" id="stage">
 
-      <div id="mushHotspot" class="mushHotspot"
-           style="left:59.9%; top:58.4%; width:4.7%; height:8.3%;"></div>
+<img class="layer scene" src="summit3i.png">
+<img class="layer mushLayer" src="mushroom.png">
+<img class="layer frame" src="stsframe3.png">
 
-      <div class="story" id="story" aria-label="Story text"></div>
+<div id="mushHotspot" class="mushHotspot"
+     style="left:59.9%; top:58.4%; width:4.7%; height:8.3%;"></div>
 
-      <div class="continue-wrap" id="continueWrap">
-        <div class="button" id="btnContinue">
-          <img src="stsbutton.png" alt="">
-          <span>Continue</span>
-        </div>
-      </div>
+<div class="story" id="story"></div>
 
-      <div class="choices" id="choices">
-        <a class="choice-link" href="end.html?choice=breath" id="btnBreath">
-          <div class="button">
-            <img src="stsbutton.png" alt="">
-            <span>Take a deep breath</span>
-          </div>
-        </a>
-
-        <a class="choice-link" href="end.html?choice=eyes" id="btnEyes">
-          <div class="button">
-            <img src="stsbutton.png" alt="">
-            <span>Close your eyes</span>
-          </div>
-        </a>
-
-        <a class="choice-link" href="end.html?choice=think" id="btnThink">
-          <div class="button">
-            <img src="stsbutton.png" alt="">
-            <span>Sit down and think</span>
-          </div>
-        </a>
-      </div>
-    </div>
+<div class="continue-wrap" id="continueWrap">
+  <div class="button" id="btnContinue">
+    <img src="stsbutton.png">
+    <span>Continue</span>
   </div>
+</div>
 
-  <div class="flash" id="flash"></div>
+<div class="choices is-hidden is-gone" id="choices">
+  <a class="choice-link" href="end.html?choice=breath">
+    <div class="button">
+      <img src="stsbutton.png">
+      <span>Take a deep breath</span>
+    </div>
+  </a>
 
-  <audio id="wind" src="wind.mp3" preload="auto" loop></audio>
+  <a class="choice-link" href="end.html?choice=eyes">
+    <div class="button">
+      <img src="stsbutton.png">
+      <span>Close your eyes</span>
+    </div>
+  </a>
+
+  <a class="choice-link" href="end.html?choice=think">
+    <div class="button">
+      <img src="stsbutton.png">
+      <span>Sit down and think</span>
+    </div>
+  </a>
+</div>
+
+</div>
+</div>
+
+<div class="flash" id="flash"></div>
+<audio id="wind" src="wind.mp3" preload="auto" loop></audio>
 
 </div>
 
 <script>
-/* HARD scroll lock */
-window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
-window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
-window.addEventListener("keydown", e => {
-  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
-});
-
-/* Stage scaling */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
-  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + s + ")";
 }
 window.addEventListener("resize", scaleStage);
-window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Wind persistence */
-const wind = document.getElementById("wind");
-const WIND_TIME_KEY = "sts_wind_time_v1";
-const WIND_VOL_KEY  = "sts_wind_vol_v1";
-function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
-
-function restoreWind() {
-  const savedVol = parseFloat(localStorage.getItem(WIND_VOL_KEY));
-  wind.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
-
-  const savedT = parseFloat(localStorage.getItem(WIND_TIME_KEY));
-  if (Number.isFinite(savedT) && savedT > 0) {
-    try { wind.currentTime = savedT; } catch (_) {}
-  }
-
-  const p = wind.play();
-  if (p && typeof p.catch === "function") {
-    p.catch(() => {
-      const resume = () => {
-        wind.play().catch(() => {});
-        document.removeEventListener("pointerup", resume, true);
-        document.removeEventListener("keydown", resume, true);
-      };
-      document.addEventListener("pointerup", resume, true);
-      document.addEventListener("keydown", resume, true);
-    });
-  }
+/* Helpers */
+function hideAndRemove(el, delay=250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), delay);
 }
-
-function startSavingWind() {
-  setInterval(() => {
-    if (!wind.paused && Number.isFinite(wind.currentTime)) {
-      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
-      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
-    }
-  }, 250);
-
-  document.addEventListener("visibilitychange", () => {
-    if (Number.isFinite(wind.currentTime)) {
-      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
-      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
-    }
-  });
-
-  window.addEventListener("beforeunload", () => {
-    if (Number.isFinite(wind.currentTime)) {
-      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
-      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
-    }
-  });
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
 }
-
-restoreWind();
-startSavingWind();
 
 /* Story */
 const story = document.getElementById("story");
 const choices = document.getElementById("choices");
 const btnContinue = document.getElementById("btnContinue");
+const continueWrap = document.getElementById("continueWrap");
+const mushHotspot = document.getElementById("mushHotspot");
 
-const storyLines = [
+const lines = [
   "The light shifts around you, faint and strange, as if the island itself is watching.",
   "The stillness deepens, wrapping around your heartbeat.",
   "Whatever happens next begins with you."
 ];
 
-let lineIndex = 0;
-let charIndex = 0;
-let typing = null;
+let line = 0, char = 0, typing = null;
 
 function showChoices() {
-  const cw = document.getElementById("continueWrap");
-  if (cw) cw.remove();                 // KEY FIX: destroy overlay for sure
-  choices.classList.add("visible");    // enables clicks via CSS
+  hideAndRemove(continueWrap);
+  mushHotspot.style.pointerEvents = "none";
+  choices.classList.add("visible");
+  showFromGone(choices);
 }
 
-function startTypingLine() {
-  if (typing) clearInterval(typing);
-  typing = null;
-  charIndex = 0;
+function typeLine() {
+  clearInterval(typing);
   story.textContent = "";
-  const current = storyLines[lineIndex];
-
+  char = 0;
   typing = setInterval(() => {
-    charIndex++;
-    story.textContent = current.slice(0, charIndex);
-
-    if (charIndex >= current.length) {
+    char++;
+    story.textContent = lines[line].slice(0, char);
+    if (char >= lines[line].length) {
       clearInterval(typing);
       typing = null;
-      charIndex = current.length;
-      if (lineIndex === storyLines.length - 1) showChoices();
+      if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  const current = storyLines[lineIndex];
-
   if (typing) {
     clearInterval(typing);
     typing = null;
-    charIndex = current.length;
-    story.textContent = current;
-    if (lineIndex === storyLines.length - 1) showChoices();
+    story.textContent = lines[line];
+    if (line === lines.length - 1) showChoices();
     return;
   }
-
-  if (lineIndex < storyLines.length - 1) {
-    lineIndex++;
-    startTypingLine();
-  } else {
-    showChoices();
+  if (line < lines.length - 1) {
+    line++;
+    typeLine();
   }
 }
 
-/* pointerdown = spam-click safe */
-btnContinue.addEventListener("pointerdown", (e) => {
+btnContinue.addEventListener("pointerdown", e => {
   e.preventDefault();
-  e.stopPropagation();
   advanceStory();
 }, { passive:false });
 
-/* Show story immediately */
 story.classList.add("visible");
-startTypingLine();
+typeLine();
 
-/* Mushroom click -> alien1.html */
-const mushHotspot = document.getElementById("mushHotspot");
-const flash = document.getElementById("flash");
-const stage = document.getElementById("stage");
-
-mushHotspot.addEventListener("click", (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-
-  flash.classList.add("on");
-  stage.classList.add("glitch");
-
-  setTimeout(() => {
-    window.location.href = "alien1.html";
-  }, 420);
-}, true);
+/* Mushroom */
+mushHotspot.addEventListener("click", () => {
+  window.location.href = "alien1.html";
+});
 </script>
 </body>
 </html>
