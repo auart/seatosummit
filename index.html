@@ -29,7 +29,6 @@ html, body {
   overflow: hidden;
 }
 
-/* START SCREEN */
 .start-screen {
   position: absolute;
   inset: 0;
@@ -44,6 +43,7 @@ html, body {
   pointer-events: none;
 }
 
+/* Wrapper so we can place the pointer under the button */
 .start-wrap {
   display: flex;
   flex-direction: column;
@@ -51,20 +51,21 @@ html, body {
   gap: 18px;
 }
 
-/* First pointer gif under Begin Again, shifted right */
 .start-pointer {
   width: 120px;
   image-rendering: pixelated;
   opacity: 0.95;
   transform: translateX(110px);
   pointer-events: none;
+  transition: opacity 300ms ease;
+}
+.start-pointer.hidden {
+  opacity: 0;
 }
 
-/* BUTTON */
 .button {
   position: relative;
   cursor: pointer;
-  display: inline-block;
 }
 
 .button img {
@@ -83,7 +84,6 @@ html, body {
   pointer-events: none;
 }
 
-/* GAME SCREEN */
 .game-screen {
   position: absolute;
   inset: 0;
@@ -98,7 +98,6 @@ html, body {
   pointer-events: auto;
 }
 
-/* STAGE */
 .stage-wrapper {
   position: absolute;
   left: 50%;
@@ -125,7 +124,75 @@ html, body {
   pointer-events: none;
 }
 
+.world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  z-index: 1;
+  will-change: transform, filter, opacity;
+  transform: translate3d(0px, 0px, 0px) scale(1);
+  transform-origin: 50% 50%;
+}
+
+/* Ocean overlay animation */
+.ocean {
+  animation: oceanShift 3600ms cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  will-change: transform;
+  transform-origin: 50% 60%;
+}
+
+@keyframes oceanShift {
+  0%   { transform: translate3d(0px, 0px, 0) scale(1); }
+  20%  { transform: translate3d(2px, 1px, 0) scale(1.005); }
+  55%  { transform: translate3d(13px, 6px, 0) scale(1.03); }
+  70%  { transform: translate3d(13px, 6px, 0) scale(1.03); }
+  100% { transform: translate3d(0px, 0px, 0) scale(1); }
+}
+
+/* waking up blur */
+.scene-haze {
+  filter: blur(0px) saturate(1) brightness(1);
+  opacity: 1;
+  transition: filter 450ms ease, opacity 450ms ease;
+}
+.scene-haze.groggy {
+  filter: blur(5px) saturate(0.92) brightness(1.02);
+  opacity: 0.92;
+}
+.scene-haze.clear {
+  filter: blur(0px) saturate(1) brightness(1);
+  opacity: 1;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 450ms ease;
+  background: radial-gradient(circle at center,
+    rgba(0,0,0,0) 45%,
+    rgba(0,0,0,0.25) 80%,
+    rgba(0,0,0,0.55) 100%);
+}
+.vignette.groggy { opacity: 1; }
+.vignette.clear { opacity: 0.18; }
+
 .frame { z-index: 10; }
+
+.title-layer {
+  position: absolute;
+  inset: 0;
+  image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 700ms ease;
+  z-index: 20;
+  pointer-events: none;
+}
+.title-layer.visible { opacity: 1; }
 
 /* STORY */
 .story {
@@ -134,19 +201,20 @@ html, body {
   bottom: 212px;
   transform: translateX(-50%);
   width: 900px;
-
   font-family: "Silkscreen";
   font-size: 30px;
   line-height: 1.2;
   color: black;
-
   opacity: 0;
   transition: opacity 600ms ease;
+  cursor: pointer;
   z-index: 25;
-
-  padding: 0 50px;
+  padding-left: 50px;
+  padding-right: 50px;
   box-sizing: border-box;
   user-select: none;
+
+  position: relative; /* IMPORTANT for pointer positioning */
 }
 .story.visible { opacity: 1; }
 
@@ -155,20 +223,21 @@ html, body {
   min-height: 96px;
 }
 
-/* Second pointer gif near story, bottom-right of box */
+/* Story pointer gif, bottom right of story box */
 .story-pointer {
   position: absolute;
-  right: -64px;
-  bottom: -20px;
+  right: -62px;
+  bottom: -18px;
   width: 96px;
   image-rendering: pixelated;
   opacity: 0;
-  transition: opacity 300ms ease;
+  transition: opacity 250ms ease;
   pointer-events: none;
 }
-.story-pointer.visible { opacity: 1; }
+.story-pointer.visible {
+  opacity: 1;
+}
 
-/* CHOICE */
 .choice {
   position: absolute;
   left: 50%;
@@ -180,6 +249,37 @@ html, body {
   text-decoration: none;
 }
 .choice.visible { opacity: 1; }
+
+.eyelids {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  overflow: hidden;
+  --pct: 0%;
+  --dur: 350ms;
+}
+
+.eyelid {
+  position: absolute;
+  width: 100%;
+  height: 50%;
+  background: black;
+  transition: transform var(--dur) cubic-bezier(0.33,0,0.2,1);
+}
+
+.eyelid.top {
+  top: 0;
+  transform: translateY(calc(-1 * var(--pct)));
+}
+.eyelid.bottom {
+  bottom: 0;
+  transform: translateY(var(--pct));
+}
+
+.eyelids.closed { --pct: 0%; }
+.eyelids.open1 { --pct: 45%; }
+.eyelids.open2 { --pct: 100%; }
 </style>
 </head>
 
@@ -193,7 +293,7 @@ html, body {
         <span>Begin Again</span>
       </div>
 
-      <img src="200w.gif" class="start-pointer" id="startPointer" alt="">
+      <img src="200w.gif" alt="" id="startPointer" class="start-pointer">
     </div>
   </div>
 
@@ -201,21 +301,32 @@ html, body {
     <div class="stage-wrapper" id="stageWrapper">
       <div class="stage">
 
-        <img class="layer" src="starti.png" alt="">
-        <img class="layer" src="startiocean.png" alt="">
+        <div class="world scene-haze groggy" id="world">
+          <img class="layer" src="starti.png" alt="">
+          <img class="layer ocean" src="startiocean.png" alt="">
+        </div>
+
+        <div class="vignette groggy" id="vignette"></div>
+
         <img class="layer frame" src="stsframe3.png" alt="">
+        <img class="title-layer" id="title" src="stslogo2.png" alt="">
 
         <div class="story" id="story">
           <span id="storyText"></span>
-          <img src="200w.gif" class="story-pointer" id="storyPointer" alt="">
+          <img src="200w.gif" alt="" id="storyPointer" class="story-pointer">
         </div>
 
         <a href="start2.html" class="choice" id="choice">
           <div class="button">
             <img src="stsbutton.png" alt="">
-            <span>Look Around</span>
+            <span style="font-size:30px;">Look Around</span>
           </div>
         </a>
+
+        <div class="eyelids closed" id="eyelids">
+          <div class="eyelid top"></div>
+          <div class="eyelid bottom"></div>
+        </div>
 
       </div>
     </div>
@@ -226,26 +337,100 @@ html, body {
 </div>
 
 <script>
+/* HARD scroll lock */
+window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
+window.addEventListener("keydown", e => {
+  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
+});
+
+/* Elements */
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
 const startButton = document.getElementById("startButton");
 const startPointer = document.getElementById("startPointer");
 
+const title = document.getElementById("title");
 const story = document.getElementById("story");
 const storyText = document.getElementById("storyText");
 const storyPointer = document.getElementById("storyPointer");
-const choice = document.getElementById("choice");
-const stageWrapper = document.getElementById("stageWrapper");
 
-/* Scale stage */
+const choice = document.getElementById("choice");
+const eyelids = document.getElementById("eyelids");
+const stageWrapper = document.getElementById("stageWrapper");
+const world = document.getElementById("world");
+const vignette = document.getElementById("vignette");
+const waves = document.getElementById("waves");
+
+/* Option B audio persistence keys */
+const WAVE_TIME_KEY = "sts_waves_time_v1";
+const WAVE_VOL_KEY  = "sts_waves_vol_v1";
+
+/* Stage scaling */
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
 }
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Story typing */
+/* Waves persistence */
+function restoreWaves() {
+  const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
+  waves.volume = Number.isFinite(savedVol) ? Math.max(0, Math.min(1, savedVol)) : 0;
+
+  const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
+  if (Number.isFinite(savedT) && savedT > 0) {
+    try { waves.currentTime = savedT; } catch (err) {}
+  }
+}
+
+function startSavingWaves() {
+  setInterval(() => {
+    if (!waves.paused && Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+    }
+  }, 250);
+
+  window.addEventListener("beforeunload", () => {
+    if (Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+    }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (Number.isFinite(waves.currentTime)) {
+      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+    }
+  });
+}
+startSavingWaves();
+
+/* Eyelids and blur helpers */
+function setEyelids(state, dur) {
+  eyelids.style.setProperty("--dur", dur + "ms");
+  eyelids.classList.remove("closed","open1","open2");
+  eyelids.classList.add(state);
+}
+
+function setGroggy(on) {
+  if (on) {
+    world.classList.add("groggy");
+    world.classList.remove("clear");
+    vignette.classList.add("groggy");
+    vignette.classList.remove("clear");
+  } else {
+    world.classList.remove("groggy");
+    world.classList.add("clear");
+    vignette.classList.remove("groggy");
+    vignette.classList.add("clear");
+  }
+}
+
+/* Story line by line */
 const storyLines = [
   "You wake up on a beach.",
   "Warm sand, slow waves.",
@@ -258,7 +443,7 @@ let typing = null;
 let isTyping = false;
 let storyActive = false;
 
-function showPointerAfterFirstLine() {
+function showStoryPointer() {
   storyPointer.classList.add("visible");
 }
 
@@ -267,19 +452,17 @@ function startTypingLine() {
   isTyping = true;
   charIndex = 0;
   storyText.textContent = "";
-
   const current = storyLines[lineIndex];
 
   typing = setInterval(() => {
     charIndex++;
     storyText.textContent = current.slice(0, charIndex);
-
     if (charIndex >= current.length) {
       clearInterval(typing);
       typing = null;
       isTyping = false;
 
-      if (lineIndex === 0) showPointerAfterFirstLine();
+      if (lineIndex === 0) showStoryPointer();
       if (lineIndex === storyLines.length - 1) choice.classList.add("visible");
     }
   }, 30);
@@ -297,7 +480,7 @@ function advanceStory() {
     charIndex = current.length;
     storyText.textContent = current;
 
-    if (lineIndex === 0) showPointerAfterFirstLine();
+    if (lineIndex === 0) showStoryPointer();
     if (lineIndex === storyLines.length - 1) choice.classList.add("visible");
     return;
   }
@@ -308,30 +491,156 @@ function advanceStory() {
   }
 }
 
-/* Click anywhere except buttons */
-document.addEventListener("click", (e) => {
+/* Click anywhere to advance, but do not hijack buttons */
+document.addEventListener("click", e => {
   if (e.target.closest("#startButton")) return;
   if (e.target.closest("#choice")) return;
   advanceStory();
 });
 
+/* Camera motion: look right, back center, zoom out */
+let raf = null;
+let motionStart = 0;
+
+let x = 0, y = 0, z = 1;
+let tx = 0, ty = 0, tz = 1;
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeInOut(p) { return 0.5 - 0.5 * Math.cos(Math.PI * p); }
+
+function applyWorld() {
+  world.style.transform = `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, 0) scale(${z.toFixed(4)})`;
+}
+
+function startLookAroundMotion() {
+  if (raf) cancelAnimationFrame(raf);
+  raf = null;
+  motionStart = 0;
+
+  x = 0;
+  y = 0;
+  z = 1.085;
+  tx = 0;
+  ty = 0;
+  tz = 1.085;
+  applyWorld();
+
+  raf = requestAnimationFrame(motionLoop);
+}
+
+function motionLoop(now) {
+  if (!motionStart) motionStart = now;
+  const t = now - motionStart;
+
+  const lookRightDur = 2200;
+  const backCenterDur = 1200;
+  const zoomOutDur = 700;
+  const pauseDur = 500;
+
+  const rightEnd = lookRightDur;
+  const centerEnd = rightEnd + backCenterDur;
+  const zoomEnd = centerEnd + zoomOutDur;
+  const endAll = zoomEnd + pauseDur;
+
+  tz = 1.085;
+
+  if (t < rightEnd) {
+    const p = easeInOut(t / lookRightDur);
+    tx = lerp(0, 12, p);
+  } else if (t < centerEnd) {
+    const p = easeInOut((t - rightEnd) / backCenterDur);
+    tx = lerp(12, 0, p);
+  } else if (t < zoomEnd) {
+    const p = easeInOut((t - centerEnd) / zoomOutDur);
+    tx = 0;
+    tz = lerp(1.085, 1.0, p);
+  } else {
+    tx = 0;
+    tz = 1.0;
+  }
+
+  x = lerp(x, tx, 0.10);
+  y = lerp(y, 0, 0.10);
+  z = lerp(z, tz, 0.10);
+
+  applyWorld();
+
+  if (t < endAll + 60) {
+    raf = requestAnimationFrame(motionLoop);
+  } else {
+    x = 0; y = 0; z = 1.0;
+    applyWorld();
+    cancelAnimationFrame(raf);
+    raf = null;
+  }
+}
+
 /* Start */
 startButton.addEventListener("click", () => {
-  startPointer.style.opacity = "0";
+  startPointer.classList.add("hidden");
+
   startScreen.classList.add("hidden");
   gameScreen.classList.add("visible");
+
+  restoreWaves();
+
+  const targetVol = 0.7;
+  waves.volume = 0;
+  const p = waves.play();
+  if (p && typeof p.catch === "function") p.catch(() => {});
+  let v = 0;
+  const fade = setInterval(() => {
+    v += 0.03;
+    waves.volume = Math.min(v, targetVol);
+    if (v >= targetVol) clearInterval(fade);
+  }, 90);
 
   lineIndex = 0;
   charIndex = 0;
   isTyping = false;
-  storyActive = true;
+  storyActive = false;
 
   storyText.textContent = "";
-  storyPointer.classList.remove("visible");
+  story.classList.remove("visible");
   choice.classList.remove("visible");
 
-  story.classList.add("visible");
-  startTypingLine();
+  storyPointer.classList.remove("visible");
+
+  if (raf) cancelAnimationFrame(raf);
+  raf = null;
+  motionStart = 0;
+
+  x = 0; y = 0; z = 1.085;
+  tx = 0; ty = 0; tz = 1.085;
+  applyWorld();
+
+  setGroggy(true);
+
+  let t = 220;
+  setTimeout(() => setEyelids("open1", 450), t);  t += 560;
+  setTimeout(() => setEyelids("closed", 320), t); t += 420;
+  setTimeout(() => setEyelids("open2", 700), t);
+
+  const blurEndAt = t + 180;
+
+  setTimeout(() => {
+    setGroggy(false);
+    startLookAroundMotion();
+  }, blurEndAt);
+
+  const motionTotal = 2200 + 1200 + 700 + 500;
+
+  const titleIn = blurEndAt + motionTotal;
+  const titleOut = titleIn + 2500;
+
+  setTimeout(() => title.classList.add("visible"), titleIn);
+  setTimeout(() => title.classList.remove("visible"), titleOut);
+
+  setTimeout(() => {
+    story.classList.add("visible");
+    storyActive = true;
+    startTypingLine();
+  }, titleOut + 700);
 });
 </script>
 </body>
