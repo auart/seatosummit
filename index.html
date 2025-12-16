@@ -29,6 +29,16 @@ html, body {
   overflow: hidden;
 }
 
+/* ---------- UNIVERSAL HIDE RULES (no accidental clicks) ---------- */
+.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.is-gone {
+  display: none !important;
+}
+/* --------------------------------------------------------------- */
+
 .start-screen {
   position: absolute;
   inset: 0;
@@ -38,12 +48,7 @@ html, body {
   z-index: 100;
   transition: opacity 700ms ease;
 }
-.start-screen.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
 
-/* Wrapper so we can place the gif underneath the button */
 .start-wrap {
   display: flex;
   flex-direction: column;
@@ -51,27 +56,26 @@ html, body {
   gap: 18px;
 }
 
-/* Pointer gif under Begin button */
 .start-pointer {
   width: 120px;
   image-rendering: pixelated;
   opacity: 0.95;
-  transform: translateX(110px); /* nudge right a bit */
+  transform: translateX(110px);
   pointer-events: none;
   transition: opacity 300ms ease;
-}
-.start-pointer.hidden {
-  opacity: 0;
 }
 
 .button {
   position: relative;
   cursor: pointer;
+  user-select: none;
 }
 
 .button img {
   width: 420px;
   image-rendering: pixelated;
+  display: block;
+  pointer-events: none;
 }
 
 .button span {
@@ -319,6 +323,16 @@ window.addEventListener("keydown", e => {
   if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
 });
 
+/* Helpers: fade out then fully remove (no accidental clicks) */
+function hideAndGone(el, fadeMs = 700) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), fadeMs);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
+
 /* Elements */
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
@@ -353,7 +367,7 @@ function restoreWaves() {
 
   const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
   if (Number.isFinite(savedT) && savedT > 0) {
-    try { waves.currentTime = savedT; } catch (err) {}
+    try { waves.currentTime = savedT; } catch (_) {}
   }
 }
 
@@ -364,20 +378,6 @@ function startSavingWaves() {
       localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
     }
   }, 250);
-
-  window.addEventListener("beforeunload", () => {
-    if (Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
-    }
-  });
-
-  document.addEventListener("visibilitychange", () => {
-    if (Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
-    }
-  });
 }
 startSavingWaves();
 
@@ -402,7 +402,7 @@ function setGroggy(on) {
   }
 }
 
-/* Story line by line */
+/* Story line by line (spam-click safe) */
 const storyLines = [
   "You wake up on a beach.",
   "Warm sand, slow waves.",
@@ -416,7 +416,9 @@ let isTyping = false;
 let storyActive = false;
 
 function startTypingLine() {
-  clearInterval(typing);
+  if (typing) clearInterval(typing);
+  typing = null;
+
   isTyping = true;
   charIndex = 0;
   story.textContent = "";
@@ -425,11 +427,16 @@ function startTypingLine() {
   typing = setInterval(() => {
     charIndex++;
     story.textContent = current.slice(0, charIndex);
+
     if (charIndex >= current.length) {
+      charIndex = current.length;
       clearInterval(typing);
+      typing = null;
       isTyping = false;
+
       if (lineIndex === storyLines.length - 1) {
         choice.classList.add("visible");
+        choice.classList.remove("is-hidden");
       }
     }
   }, 30);
@@ -438,11 +445,19 @@ function startTypingLine() {
 function advanceStory() {
   if (!storyActive) return;
 
+  const current = storyLines[lineIndex];
+
   if (isTyping) {
-    clearInterval(typing);
+    if (typing) clearInterval(typing);
+    typing = null;
     isTyping = false;
-    story.textContent = storyLines[lineIndex];
-    if (lineIndex === storyLines.length - 1) choice.classList.add("visible");
+    charIndex = current.length;
+    story.textContent = current;
+
+    if (lineIndex === storyLines.length - 1) {
+      choice.classList.add("visible");
+      choice.classList.remove("is-hidden");
+    }
     return;
   }
 
@@ -452,17 +467,17 @@ function advanceStory() {
   }
 }
 
-/* Click anywhere to advance, but do not hijack buttons */
-document.addEventListener("click", e => {
+/* Pointerdown so spam clicks always register */
+document.addEventListener("pointerdown", (e) => {
   if (e.target.closest("#startButton")) return;
   if (e.target.closest("#choice")) return;
+  if (!storyActive) return;
   advanceStory();
-});
+}, { passive:false });
 
 /* Camera motion: look right, back center, zoom out */
 let raf = null;
 let motionStart = 0;
-
 let x = 0, y = 0, z = 1;
 let tx = 0, ty = 0, tz = 1;
 
@@ -478,12 +493,8 @@ function startLookAroundMotion() {
   raf = null;
   motionStart = 0;
 
-  x = 0;
-  y = 0;
-  z = 1.085;
-  tx = 0;
-  ty = 0;
-  tz = 1.085;
+  x = 0; y = 0; z = 1.085;
+  tx = 0; ty = 0; tz = 1.085;
   applyWorld();
 
   raf = requestAnimationFrame(motionLoop);
@@ -531,21 +542,28 @@ function motionLoop(now) {
   } else {
     x = 0; y = 0; z = 1.0;
     applyWorld();
-    cancelAnimationFrame(raf);
+    if (raf) cancelAnimationFrame(raf);
     raf = null;
   }
 }
 
 /* Start */
-startButton.addEventListener("click", () => {
-  startPointer.classList.add("hidden");
+startButton.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
 
-  startScreen.classList.add("hidden");
+  // hide the gif immediately
+  hideAndGone(startPointer, 300);
+
+  // fade out start screen then remove it so it can't be clicked
+  hideAndGone(startScreen, 700);
+
+  // show game
   gameScreen.classList.add("visible");
 
   restoreWaves();
 
-  /* fade in waves */
+  // fade in waves
   const targetVol = 0.7;
   waves.volume = 0;
   const p = waves.play();
@@ -557,16 +575,19 @@ startButton.addEventListener("click", () => {
     if (v >= targetVol) clearInterval(fade);
   }, 90);
 
-  /* reset story state */
+  // reset story state
   lineIndex = 0;
   charIndex = 0;
   isTyping = false;
   storyActive = false;
   story.textContent = "";
   story.classList.remove("visible");
-  choice.classList.remove("visible");
 
-  /* reset motion */
+  // choice starts non-clickable until visible
+  choice.classList.remove("visible");
+  choice.classList.add("is-hidden");
+
+  // reset motion
   if (raf) cancelAnimationFrame(raf);
   raf = null;
   motionStart = 0;
@@ -602,7 +623,7 @@ startButton.addEventListener("click", () => {
     storyActive = true;
     startTypingLine();
   }, titleOut + 700);
-});
+}, { passive:false });
 </script>
 </body>
 </html>
