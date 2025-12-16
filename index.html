@@ -43,7 +43,7 @@ html, body {
   pointer-events: none;
 }
 
-/* Wrapper so we can place the pointer under the button */
+/* Wrapper so we can place the gif underneath the button */
 .start-wrap {
   display: flex;
   flex-direction: column;
@@ -51,11 +51,12 @@ html, body {
   gap: 18px;
 }
 
+/* Pointer gif under Begin button */
 .start-pointer {
   width: 120px;
   image-rendering: pixelated;
   opacity: 0.95;
-  transform: translateX(110px);
+  transform: translateX(110px); /* nudge right a bit */
   pointer-events: none;
   transition: opacity 300ms ease;
 }
@@ -194,7 +195,6 @@ html, body {
 }
 .title-layer.visible { opacity: 1; }
 
-/* STORY */
 .story {
   position: absolute;
   left: 50%;
@@ -213,30 +213,8 @@ html, body {
   padding-right: 50px;
   box-sizing: border-box;
   user-select: none;
-
-  position: relative; /* IMPORTANT for pointer positioning */
 }
 .story.visible { opacity: 1; }
-
-#storyText {
-  display: block;
-  min-height: 96px;
-}
-
-/* Story pointer gif, bottom right of story box */
-.story-pointer {
-  position: absolute;
-  right: -62px;
-  bottom: -18px;
-  width: 96px;
-  image-rendering: pixelated;
-  opacity: 0;
-  transition: opacity 250ms ease;
-  pointer-events: none;
-}
-.story-pointer.visible {
-  opacity: 1;
-}
 
 .choice {
   position: absolute;
@@ -311,10 +289,7 @@ html, body {
         <img class="layer frame" src="stsframe3.png" alt="">
         <img class="title-layer" id="title" src="stslogo2.png" alt="">
 
-        <div class="story" id="story">
-          <span id="storyText"></span>
-          <img src="200w.gif" alt="" id="storyPointer" class="story-pointer">
-        </div>
+        <div class="story" id="story"></div>
 
         <a href="start2.html" class="choice" id="choice">
           <div class="button">
@@ -352,9 +327,6 @@ const startPointer = document.getElementById("startPointer");
 
 const title = document.getElementById("title");
 const story = document.getElementById("story");
-const storyText = document.getElementById("storyText");
-const storyPointer = document.getElementById("storyPointer");
-
 const choice = document.getElementById("choice");
 const eyelids = document.getElementById("eyelids");
 const stageWrapper = document.getElementById("stageWrapper");
@@ -443,27 +415,22 @@ let typing = null;
 let isTyping = false;
 let storyActive = false;
 
-function showStoryPointer() {
-  storyPointer.classList.add("visible");
-}
-
 function startTypingLine() {
   clearInterval(typing);
   isTyping = true;
   charIndex = 0;
-  storyText.textContent = "";
+  story.textContent = "";
   const current = storyLines[lineIndex];
 
   typing = setInterval(() => {
     charIndex++;
-    storyText.textContent = current.slice(0, charIndex);
+    story.textContent = current.slice(0, charIndex);
     if (charIndex >= current.length) {
       clearInterval(typing);
-      typing = null;
       isTyping = false;
-
-      if (lineIndex === 0) showStoryPointer();
-      if (lineIndex === storyLines.length - 1) choice.classList.add("visible");
+      if (lineIndex === storyLines.length - 1) {
+        choice.classList.add("visible");
+      }
     }
   }, 30);
 }
@@ -471,16 +438,10 @@ function startTypingLine() {
 function advanceStory() {
   if (!storyActive) return;
 
-  const current = storyLines[lineIndex];
-
   if (isTyping) {
     clearInterval(typing);
-    typing = null;
     isTyping = false;
-    charIndex = current.length;
-    storyText.textContent = current;
-
-    if (lineIndex === 0) showStoryPointer();
+    story.textContent = storyLines[lineIndex];
     if (lineIndex === storyLines.length - 1) choice.classList.add("visible");
     return;
   }
@@ -584,6 +545,7 @@ startButton.addEventListener("click", () => {
 
   restoreWaves();
 
+  /* fade in waves */
   const targetVol = 0.7;
   waves.volume = 0;
   const p = waves.play();
@@ -595,17 +557,16 @@ startButton.addEventListener("click", () => {
     if (v >= targetVol) clearInterval(fade);
   }, 90);
 
+  /* reset story state */
   lineIndex = 0;
   charIndex = 0;
   isTyping = false;
   storyActive = false;
-
-  storyText.textContent = "";
+  story.textContent = "";
   story.classList.remove("visible");
   choice.classList.remove("visible");
 
-  storyPointer.classList.remove("visible");
-
+  /* reset motion */
   if (raf) cancelAnimationFrame(raf);
   raf = null;
   motionStart = 0;
