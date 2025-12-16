@@ -29,12 +29,19 @@ html, body {
 
 body { touch-action: manipulation; }
 
+img { pointer-events: none; -webkit-user-drag: none; }
+
 .app {
   position: fixed;
   inset: 0;
   background: black;
   overflow: hidden;
 }
+
+/* ---------- SAFE HIDE HELPERS (prevents invisible click blocking) ---------- */
+.is-hidden { opacity: 0 !important; pointer-events: none !important; }
+.is-gone { display: none !important; }
+/* -------------------------------------------------------------------------- */
 
 /* Stage scaling */
 .stage-wrapper {
@@ -93,16 +100,13 @@ body { touch-action: manipulation; }
   position: relative;
   display: inline-block;
   cursor: pointer;
-  pointer-events: auto;
 }
-
 .button img {
   width: 420px;
   image-rendering: pixelated;
   display: block;
   pointer-events: none;
 }
-
 .button span {
   position: absolute;
   inset: 0;
@@ -125,11 +129,7 @@ body { touch-action: manipulation; }
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
-}
-
-/* KEY FIX: when hidden, remove it from layout so it can't block clicks */
-.continue-wrap.hidden {
-  display: none;
+  transition: opacity 250ms ease;
 }
 
 /* Choices */
@@ -143,12 +143,8 @@ body { touch-action: manipulation; }
   opacity: 0;
   transition: opacity 600ms ease;
   z-index: 30;
-  pointer-events: none; /* don't click until visible */
 }
-.choices.visible {
-  opacity: 1;
-  pointer-events: auto; /* clickable when visible */
-}
+.choices.visible { opacity: 1; }
 
 .choice-link {
   text-decoration: none;
@@ -176,7 +172,8 @@ body { touch-action: manipulation; }
         </div>
       </div>
 
-      <div class="choices" id="choices">
+      <!-- start fully non-clickable + not in layout -->
+      <div class="choices is-hidden is-gone" id="choices">
         <a class="choice-link" id="btnUpward" href="uphill5.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
@@ -193,6 +190,16 @@ body { touch-action: manipulation; }
 /* Prevent weird drag behavior */
 document.addEventListener("dragstart", (e) => e.preventDefault());
 
+/* Utility hide/show (prevents invisible overlay blocking clicks) */
+function hideAndGone(el, delay = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), delay);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
+
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -203,7 +210,7 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Story (Continue button only, fixed early-click issue, choices always clickable) */
+/* Story */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -221,17 +228,19 @@ const lines = [
 let line = 0;
 let char = 0;
 let typing = null;
+let isTyping = false;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");   // display:none now, so it can't block
+  hideAndGone(continueWrap);
   choices.classList.add("visible");
+  showFromGone(choices);
 }
 
 function typeLine() {
   if (typing) clearInterval(typing);
-  typing = null;
   story.textContent = "";
   char = 0;
+  isTyping = true;
 
   typing = setInterval(() => {
     char++;
@@ -241,16 +250,17 @@ function typeLine() {
       char = lines[line].length;
       clearInterval(typing);
       typing = null;
+      isTyping = false;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (typing) {
+  if (isTyping) {
     clearInterval(typing);
     typing = null;
-    char = lines[line].length;
+    isTyping = false;
     story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
@@ -264,7 +274,7 @@ function advanceStory() {
   }
 }
 
-/* Use pointerdown so fast clicks never "miss" */
+/* Use pointerdown so fast clicks never miss */
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
