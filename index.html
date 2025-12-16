@@ -29,8 +29,7 @@ html, body {
   overflow: hidden;
 }
 
-/* ---------- START SCREEN ---------- */
-
+/* START SCREEN */
 .start-screen {
   position: absolute;
   inset: 0;
@@ -49,20 +48,23 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28px;
+  gap: 18px;
 }
 
+/* First pointer gif under Begin Again, shifted right */
 .start-pointer {
   width: 120px;
   image-rendering: pixelated;
-  opacity: 0.9;
+  opacity: 0.95;
+  transform: translateX(110px);
+  pointer-events: none;
 }
 
-/* ---------- BUTTON ---------- */
-
+/* BUTTON */
 .button {
   position: relative;
   cursor: pointer;
+  display: inline-block;
 }
 
 .button img {
@@ -81,8 +83,7 @@ html, body {
   pointer-events: none;
 }
 
-/* ---------- GAME SCREEN ---------- */
-
+/* GAME SCREEN */
 .game-screen {
   position: absolute;
   inset: 0;
@@ -97,8 +98,7 @@ html, body {
   pointer-events: auto;
 }
 
-/* ---------- STAGE ---------- */
-
+/* STAGE */
 .stage-wrapper {
   position: absolute;
   left: 50%;
@@ -125,8 +125,9 @@ html, body {
   pointer-events: none;
 }
 
-/* ---------- STORY ---------- */
+.frame { z-index: 10; }
 
+/* STORY */
 .story {
   position: absolute;
   left: 50%;
@@ -145,10 +146,16 @@ html, body {
 
   padding: 0 50px;
   box-sizing: border-box;
+  user-select: none;
 }
 .story.visible { opacity: 1; }
 
-/* Pointer gif near story */
+#storyText {
+  display: block;
+  min-height: 96px;
+}
+
+/* Second pointer gif near story, bottom-right of box */
 .story-pointer {
   position: absolute;
   right: -64px;
@@ -156,13 +163,12 @@ html, body {
   width: 96px;
   image-rendering: pixelated;
   opacity: 0;
-  transition: opacity 400ms ease;
+  transition: opacity 300ms ease;
   pointer-events: none;
 }
 .story-pointer.visible { opacity: 1; }
 
-/* ---------- CHOICE ---------- */
-
+/* CHOICE */
 .choice {
   position: absolute;
   left: 50%;
@@ -174,14 +180,12 @@ html, body {
   text-decoration: none;
 }
 .choice.visible { opacity: 1; }
-
 </style>
 </head>
 
 <body>
 <div class="app">
 
-  <!-- START SCREEN -->
   <div class="start-screen" id="startScreen">
     <div class="start-wrap">
       <div class="button" id="startButton">
@@ -193,16 +197,16 @@ html, body {
     </div>
   </div>
 
-  <!-- GAME SCREEN -->
   <div class="game-screen" id="gameScreen">
     <div class="stage-wrapper" id="stageWrapper">
       <div class="stage">
 
         <img class="layer" src="starti.png" alt="">
         <img class="layer" src="startiocean.png" alt="">
-        <img class="layer" src="stsframe3.png" alt="">
+        <img class="layer frame" src="stsframe3.png" alt="">
 
         <div class="story" id="story">
+          <span id="storyText"></span>
           <img src="200w.gif" class="story-pointer" id="storyPointer" alt="">
         </div>
 
@@ -218,16 +222,17 @@ html, body {
   </div>
 
   <audio id="waves" src="waves.mp3" preload="auto" loop></audio>
+
 </div>
 
 <script>
-/* Elements */
 const startScreen = document.getElementById("startScreen");
 const gameScreen = document.getElementById("gameScreen");
 const startButton = document.getElementById("startButton");
 const startPointer = document.getElementById("startPointer");
 
 const story = document.getElementById("story");
+const storyText = document.getElementById("storyText");
 const storyPointer = document.getElementById("storyPointer");
 const choice = document.getElementById("choice");
 const stageWrapper = document.getElementById("stageWrapper");
@@ -251,47 +256,49 @@ let lineIndex = 0;
 let charIndex = 0;
 let typing = null;
 let isTyping = false;
+let storyActive = false;
+
+function showPointerAfterFirstLine() {
+  storyPointer.classList.add("visible");
+}
 
 function startTypingLine() {
   clearInterval(typing);
   isTyping = true;
   charIndex = 0;
-  story.textContent = "";
+  storyText.textContent = "";
 
   const current = storyLines[lineIndex];
 
   typing = setInterval(() => {
     charIndex++;
-    story.textContent = current.slice(0, charIndex);
+    storyText.textContent = current.slice(0, charIndex);
 
     if (charIndex >= current.length) {
       clearInterval(typing);
+      typing = null;
       isTyping = false;
 
-      if (lineIndex === 0) {
-        storyPointer.classList.add("visible");
-      }
-
-      if (lineIndex === storyLines.length - 1) {
-        choice.classList.add("visible");
-      }
+      if (lineIndex === 0) showPointerAfterFirstLine();
+      if (lineIndex === storyLines.length - 1) choice.classList.add("visible");
     }
   }, 30);
 }
 
 function advanceStory() {
+  if (!storyActive) return;
+
+  const current = storyLines[lineIndex];
+
   if (isTyping) {
     clearInterval(typing);
+    typing = null;
     isTyping = false;
-    story.textContent = storyLines[lineIndex];
+    charIndex = current.length;
+    storyText.textContent = current;
 
-    if (lineIndex === 0) {
-      storyPointer.classList.add("visible");
-    }
-
-    if (lineIndex === storyLines.length - 1) {
-      choice.classList.add("visible");
-    }
+    if (lineIndex === 0) showPointerAfterFirstLine();
+    if (lineIndex === storyLines.length - 1) choice.classList.add("visible");
     return;
   }
 
@@ -302,13 +309,13 @@ function advanceStory() {
 }
 
 /* Click anywhere except buttons */
-document.addEventListener("click", e => {
+document.addEventListener("click", (e) => {
   if (e.target.closest("#startButton")) return;
   if (e.target.closest("#choice")) return;
   advanceStory();
 });
 
-/* Start button */
+/* Start */
 startButton.addEventListener("click", () => {
   startPointer.style.opacity = "0";
   startScreen.classList.add("hidden");
@@ -316,7 +323,10 @@ startButton.addEventListener("click", () => {
 
   lineIndex = 0;
   charIndex = 0;
-  story.textContent = "";
+  isTyping = false;
+  storyActive = true;
+
+  storyText.textContent = "";
   storyPointer.classList.remove("visible");
   choice.classList.remove("visible");
 
