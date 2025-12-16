@@ -29,12 +29,27 @@ html, body {
 
 body { touch-action: manipulation; }
 
+img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
 .app {
   position: fixed;
   inset: 0;
   background: black;
   overflow: hidden;
 }
+
+/* ---------- GLOBAL SAFE HIDING ---------- */
+.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.is-gone {
+  display: none !important;
+}
+/* -------------------------------------- */
 
 /* Stage scaling */
 .stage-wrapper {
@@ -59,8 +74,6 @@ body { touch-action: manipulation; }
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
-  pointer-events: none;
-  -webkit-user-drag: none;
 }
 
 .scene { z-index: 1; }
@@ -100,7 +113,6 @@ body { touch-action: manipulation; }
   width: 420px;
   image-rendering: pixelated;
   display: block;
-  pointer-events: none;
 }
 
 .button span {
@@ -125,10 +137,7 @@ body { touch-action: manipulation; }
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
-}
-.continue-wrap.hidden {
-  opacity: 0;
-  pointer-events: none;
+  transition: opacity 250ms ease;
 }
 
 /* Choices (3 buttons) */
@@ -149,15 +158,16 @@ body { touch-action: manipulation; }
   text-decoration: none;
   transform: scale(0.84);
   transform-origin: center center;
+  display: inline-block;
 }
 
 /* Slightly smaller labels so 3 fit clean */
 .choices .button span { font-size: 22px; padding: 0 18px; }
 
-/* FIX: force left/middle/right order */
-#btnBack   { order: 1; }  /* left */
-#btnDeeper { order: 2; }  /* middle */
-#btnStream { order: 3; }  /* right */
+/* Force left/middle/right order */
+#btnBack   { order: 1; }
+#btnDeeper { order: 2; }
+#btnStream { order: 3; }
 </style>
 </head>
 
@@ -178,7 +188,8 @@ body { touch-action: manipulation; }
         </div>
       </div>
 
-      <div class="choices" id="choices">
+      <!-- start hidden AND unclickable -->
+      <div class="choices is-hidden is-gone" id="choices">
         <a class="choice-link" id="btnStream" href="waterfall1.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
@@ -208,13 +219,23 @@ body { touch-action: manipulation; }
 
 <script>
 /* Prevent weird drag behavior */
-document.addEventListener("dragstart", (e) => e.preventDefault());
+document.addEventListener("dragstart", e => e.preventDefault());
+
+/* Hide helpers (prevents “hidden button still clickable”) */
+function hideAndGone(el, ms = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), ms);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
 
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+  stageWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
 window.addEventListener("resize", scaleStage);
 scaleStage();
@@ -223,10 +244,10 @@ scaleStage();
 const waves = document.getElementById("waves");
 waves.volume = 0.35;
 waves.play().catch(() => {
-  document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
+  document.addEventListener("pointerdown", () => waves.play().catch(()=>{}), { once:true });
 });
 
-/* Story typing (FIXED: early clicks can’t break Continue) */
+/* Story typing (spam-click safe) */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -242,38 +263,49 @@ const lines = [
 let line = 0;
 let char = 0;
 let typing = null;
+let isTyping = false;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");
+  hideAndGone(continueWrap);
   choices.classList.add("visible");
+  showFromGone(choices);
 }
 
 function typeLine() {
-  clearInterval(typing);
+  if (typing) clearInterval(typing);
+  typing = null;
+
   story.textContent = "";
   char = 0;
+  isTyping = true;
+
+  const current = lines[line];
 
   typing = setInterval(() => {
     char++;
-    story.textContent = lines[line].slice(0, char);
+    story.textContent = current.slice(0, char);
 
-    if (char >= lines[line].length) {
-      char = lines[line].length;
+    if (char >= current.length) {
+      char = current.length;
       clearInterval(typing);
       typing = null;
+      isTyping = false;
+
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  const currentLen = lines[line].length;
+  const current = lines[line];
 
-  if (typing) {
-    clearInterval(typing);
+  if (isTyping) {
+    if (typing) clearInterval(typing);
     typing = null;
-    char = currentLen;
-    story.textContent = lines[line];
+    isTyping = false;
+    char = current.length;
+    story.textContent = current;
+
     if (line === lines.length - 1) showChoices();
     return;
   }
@@ -286,7 +318,7 @@ function advanceStory() {
   }
 }
 
-/* Use pointerdown so fast clicks always register */
+/* pointerdown so spam clicking never misses */
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
