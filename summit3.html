@@ -161,7 +161,7 @@ body { touch-action: manipulation; }
 /* Mushroom hotspot */
 .mushHotspot {
   position: absolute;
-  z-index: 60;                    /* FIX: above choices + continue */
+  z-index: 60;                     /* above choices + continue */
   cursor: pointer;
   pointer-events: auto;
   background: rgba(255,255,255,0);
@@ -222,6 +222,9 @@ body { touch-action: manipulation; }
 </div>
 
 <script>
+/* Prevent weird drag behavior */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -297,6 +300,7 @@ const choices = document.getElementById("choices");
 const btnContinue = document.getElementById("btnContinue");
 const continueWrap = document.getElementById("continueWrap");
 const mushHotspot = document.getElementById("mushHotspot");
+const stage = document.getElementById("stage");
 
 const lines = [
   "The light shifts around you, faint and strange, as if the island itself is watching.",
@@ -307,7 +311,25 @@ const lines = [
 let line = 0;
 let char = 0;
 let typing = null;
+let isTyping = false;
 let showingChoices = false;
+
+/* ADVANCE SOURCE CONTROL
+   - Clicking anywhere should advance
+   - BUT never steal clicks from:
+     - choice buttons/links
+     - continue button
+     - mushroom hotspot
+*/
+function isInteractiveTarget(target) {
+  return !!(target.closest && (
+    target.closest("#btnContinue") ||
+    target.closest("#choices") ||
+    target.closest("#mushHotspot") ||
+    target.closest("a") ||
+    target.closest("button")
+  ));
+}
 
 function showChoices() {
   if (showingChoices) return;
@@ -319,30 +341,40 @@ function showChoices() {
 }
 
 function typeLine() {
-  clearInterval(typing);
+  if (typing) clearInterval(typing);
   typing = null;
+
   story.textContent = "";
   char = 0;
+  isTyping = true;
+
+  const current = lines[line];
 
   typing = setInterval(() => {
     char++;
-    story.textContent = lines[line].slice(0, char);
+    story.textContent = current.slice(0, char);
 
-    if (char >= lines[line].length) {
+    if (char >= current.length) {
+      char = current.length;
       clearInterval(typing);
       typing = null;
-      char = lines[line].length;
+      isTyping = false;
+
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  if (typing) {
-    clearInterval(typing);
+  const current = lines[line];
+
+  if (isTyping) {
+    if (typing) clearInterval(typing);
     typing = null;
-    char = lines[line].length;
-    story.textContent = lines[line];
+    isTyping = false;
+    char = current.length;
+    story.textContent = current;
+
     if (line === lines.length - 1) showChoices();
     return;
   }
@@ -355,12 +387,21 @@ function advanceStory() {
   }
 }
 
+/* Continue button */
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
 }, { passive:false });
 
+/* CLICK ANYWHERE TO ADVANCE (safe) */
+stage.addEventListener("pointerdown", (e) => {
+  if (isInteractiveTarget(e.target)) return;     // don't steal real UI clicks
+  e.preventDefault();
+  advanceStory();
+}, { passive:false });
+
+/* Start */
 story.classList.add("visible");
 typeLine();
 
