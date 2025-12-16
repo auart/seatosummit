@@ -29,12 +29,27 @@ html, body {
 
 body { touch-action: manipulation; }
 
+img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
 .app {
   position: fixed;
   inset: 0;
   background: black;
   overflow: hidden;
 }
+
+/* ---------- GLOBAL SAFE HIDING ---------- */
+.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.is-gone {
+  display: none !important;
+}
+/* -------------------------------------- */
 
 /* Stage scaling */
 .stage-wrapper {
@@ -59,8 +74,6 @@ body { touch-action: manipulation; }
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
-  pointer-events: none;
-  -webkit-user-drag: none;
 }
 
 .scene { z-index: 1; }
@@ -89,20 +102,16 @@ body { touch-action: manipulation; }
 }
 .story.visible { opacity: 1; }
 
-/* Button component */
+/* Button */
 .button {
   position: relative;
   display: inline-block;
   cursor: pointer;
 }
-
 .button img {
   width: 420px;
   image-rendering: pixelated;
-  display: block;
-  pointer-events: none;
 }
-
 .button span {
   position: absolute;
   inset: 0;
@@ -112,25 +121,19 @@ body { touch-action: manipulation; }
   font-size: 28px;
   color: black;
   pointer-events: none;
-  padding: 0 20px;
-  text-align: center;
-  line-height: 1.05;
 }
 
-/* Continue button */
+/* Continue */
 .continue-wrap {
   position: absolute;
   left: 50%;
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
-}
-.continue-wrap.hidden {
-  opacity: 0;
-  pointer-events: none;
+  transition: opacity 250ms ease;
 }
 
-/* Choices (two buttons: Back + Continue) */
+/* Choices */
 .choices {
   position: absolute;
   left: 50%;
@@ -147,7 +150,6 @@ body { touch-action: manipulation; }
 .choice-link {
   text-decoration: none;
   transform: scale(0.84);
-  transform-origin: center center;
 }
 </style>
 </head>
@@ -157,6 +159,7 @@ body { touch-action: manipulation; }
 
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
+
       <img class="layer scene" src="palms2i.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
@@ -169,52 +172,63 @@ body { touch-action: manipulation; }
         </div>
       </div>
 
-      <div class="choices" id="choices">
-        <a class="choice-link" id="btnBack" href="palms1.html">
+      <div class="choices is-hidden is-gone" id="choices">
+        <a class="choice-link" href="palms1.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Back</span>
           </div>
         </a>
 
-        <a class="choice-link" id="btnNext" href="palms3.html">
+        <a class="choice-link" href="palms3.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Continue</span>
           </div>
         </a>
       </div>
+
     </div>
   </div>
 
- <audio id="waves" src="palms.mp3" preload="auto" loop></audio>
+  <audio id="waves" src="palms.mp3" preload="auto" loop></audio>
 </div>
 
 <script>
-/* Prevent weird drag behavior (helps with “click too soon / drag” issues) */
-document.addEventListener("dragstart", (e) => e.preventDefault());
+/* Prevent drag weirdness */
+document.addEventListener("dragstart", e => e.preventDefault());
 
-/* Scale stage */
+/* Hide helpers */
+function hideAndGone(el, ms = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), ms);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
+
+/* Scale */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
-  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = `translate(-50%, -50%) scale(${s})`;
 }
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Audio (simple) */
+/* Audio */
 const waves = document.getElementById("waves");
 waves.volume = 0.02;
 waves.play().catch(() => {
-  document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
+  document.addEventListener("pointerdown", () => waves.play().catch(()=>{}), { once:true });
 });
 
-/* Story typing (fixed so early clicks can’t “desync” and kill Continue) */
+/* Story */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
-const choices = document.getElementById("choices");
 const btnContinue = document.getElementById("btnContinue");
+const choices = document.getElementById("choices");
 
 const lines = [
   "The further you walk, the quieter the grove becomes.",
@@ -226,54 +240,60 @@ const lines = [
 let line = 0;
 let char = 0;
 let typing = null;
+let isTyping = false;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");
+  hideAndGone(continueWrap);
   choices.classList.add("visible");
+  showFromGone(choices);
 }
 
 function typeLine() {
-  clearInterval(typing);
+  if (typing) clearInterval(typing);
+  typing = null;
+
   story.textContent = "";
   char = 0;
+  isTyping = true;
+
+  const current = lines[line];
 
   typing = setInterval(() => {
     char++;
-    story.textContent = lines[line].slice(0, char);
+    story.textContent = current.slice(0, char);
 
-    if (char >= lines[line].length) {
-      char = lines[line].length; /* KEY FIX */
+    if (char >= current.length) {
+      char = current.length;
       clearInterval(typing);
       typing = null;
+      isTyping = false;
+
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  const currentLen = lines[line].length;
+  const current = lines[line];
 
-  /* If currently typing, finish the line (and lock char correctly) */
-  if (typing) {
-    clearInterval(typing);
+  if (isTyping) {
+    if (typing) clearInterval(typing);
     typing = null;
-    char = currentLen; /* KEY FIX */
-    story.textContent = lines[line];
+    isTyping = false;
+    char = current.length;
+    story.textContent = current;
+
     if (line === lines.length - 1) showChoices();
     return;
   }
 
-  /* If line is finished, go next */
   if (line < lines.length - 1) {
     line++;
     typeLine();
-  } else {
-    showChoices();
   }
 }
 
-/* Use pointerdown (more reliable than pointerup when people click fast) */
-btnContinue.addEventListener("pointerdown", (e) => {
+btnContinue.addEventListener("pointerdown", e => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
