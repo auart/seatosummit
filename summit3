@@ -1,1 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sea to Summit, Summit 3</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: black;
+  position: fixed;
+  inset: 0;
+}
+
+body { touch-action: manipulation; }
+
+* {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.app {
+  position: fixed;
+  inset: 0;
+  background: black;
+  overflow: hidden;
+}
+
+/* ---------- SAFETY CLASSES ---------- */
+.is-hidden { opacity: 0 !important; pointer-events: none !important; }
+.is-gone { display: none !important; }
+/* ---------------------------------- */
+
+.stage-wrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  width: 1920px;
+  height: 1080px;
+}
+
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.scene { z-index: 1; }
+.mushLayer { z-index: 6; }
+.frame { z-index: 10; }
+
+/* Story */
+.story {
+  position: absolute;
+  left: 50%;
+  bottom: 180px;
+  transform: translateX(-50%);
+  width: 900px;
+
+  font-family: Silkscreen;
+  font-size: 26px;
+  line-height: 1.25;
+  color: black;
+
+  z-index: 25;
+  min-height: 96px;
+  padding: 16px 50px 0 50px;
+  box-sizing: border-box;
+
+  opacity: 0;
+  transition: opacity 500ms ease;
+}
+.story.visible { opacity: 1; }
+
+/* Button component */
+.button {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.button img {
+  width: 420px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+/* === STANDARD BUTTON TEXT (MATCHES ENTIRE GAME) === */
+.button span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+
+  font-family: "Press Start 2P";
+  font-size: 26px;
+  letter-spacing: -1px;
+  color: black;
+
+  pointer-events: none;
+  padding: 0 20px;
+  text-align: center;
+  line-height: 1.05;
+}
+
+/* Continue button */
+.continue-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%) scale(0.84);
+  z-index: 40;
+  transition: opacity 250ms ease;
+}
+
+/* Choices row */
+.choices {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+  z-index: 30;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 600ms ease;
+}
+.choices.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.choice-link {
+  text-decoration: none;
+  transform: scale(0.84);
+  transform-origin: center center;
+}
+
+/* Mushroom hotspot */
+.mushHotspot {
+  position: absolute;
+  z-index: 60;                    /* FIX: above choices + continue */
+  cursor: pointer;
+  pointer-events: auto;
+  background: rgba(255,255,255,0);
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <div class="stage-wrapper" id="stageWrapper">
+    <div class="stage" id="stage">
+
+      <img class="layer scene" src="summit3i.png" alt="">
+      <img class="layer mushLayer" src="mushroom.png" alt="">
+      <img class="layer frame" src="stsframe3.png" alt="">
+
+      <div id="mushHotspot" class="mushHotspot"
+           style="left:59.9%; top:58.4%; width:4.7%; height:8.3%;"></div>
+
+      <div class="story" id="story"></div>
+
+      <div class="continue-wrap" id="continueWrap">
+        <div class="button" id="btnContinue">
+          <img src="stsbutton.png" alt="">
+          <span>Continue</span>
+        </div>
+      </div>
+
+      <div class="choices is-hidden is-gone" id="choices">
+        <a class="choice-link" href="end.html?choice=breath">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Take a deep breath</span>
+          </div>
+        </a>
+
+        <a class="choice-link" href="end.html?choice=eyes">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Close your eyes</span>
+          </div>
+        </a>
+
+        <a class="choice-link" href="end.html?choice=think">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Sit down and think</span>
+          </div>
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <audio id="wind" src="wind.mp3" preload="auto" loop></audio>
+
+</div>
+
+<script>
+/* Scale stage */
+const stageWrapper = document.getElementById("stageWrapper");
+function scaleStage() {
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + s + ")";
+}
+window.addEventListener("resize", scaleStage);
+window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
+scaleStage();
+
+/* Helpers */
+function hideAndRemove(el, delay = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), delay);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
+
+/* Wind persistence */
+const wind = document.getElementById("wind");
+const WIND_TIME_KEY = "sts_wind_time_v1";
+const WIND_VOL_KEY  = "sts_wind_vol_v1";
+function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
+
+function restoreWind() {
+  const savedVol = parseFloat(localStorage.getItem(WIND_VOL_KEY));
+  wind.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
+
+  const savedT = parseFloat(localStorage.getItem(WIND_TIME_KEY));
+  if (Number.isFinite(savedT) && savedT > 0) {
+    try { wind.currentTime = savedT; } catch (_) {}
+  }
+
+  const p = wind.play();
+  if (p && typeof p.catch === "function") {
+    p.catch(() => {
+      const resume = () => wind.play().catch(()=>{});
+      document.addEventListener("pointerup", resume, { once:true });
+      document.addEventListener("keydown", resume, { once:true });
+    });
+  }
+}
+function startSavingWind() {
+  setInterval(() => {
+    if (!wind.paused && Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
+    }
+  }, 250);
+
+  document.addEventListener("visibilitychange", () => {
+    if (Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if (Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
+    }
+  });
+}
+restoreWind();
+startSavingWind();
+
+/* Story */
+const story = document.getElementById("story");
+const choices = document.getElementById("choices");
+const btnContinue = document.getElementById("btnContinue");
+const continueWrap = document.getElementById("continueWrap");
+const mushHotspot = document.getElementById("mushHotspot");
+
+const lines = [
+  "The light shifts around you, faint and strange, as if the island itself is watching.",
+  "The stillness deepens, wrapping around your heartbeat.",
+  "Whatever happens next begins with you."
+];
+
+let line = 0;
+let char = 0;
+let typing = null;
+let showingChoices = false;
+
+function showChoices() {
+  if (showingChoices) return;
+  showingChoices = true;
+
+  hideAndRemove(continueWrap);
+  choices.classList.add("visible");
+  showFromGone(choices);
+}
+
+function typeLine() {
+  clearInterval(typing);
+  typing = null;
+  story.textContent = "";
+  char = 0;
+
+  typing = setInterval(() => {
+    char++;
+    story.textContent = lines[line].slice(0, char);
+
+    if (char >= lines[line].length) {
+      clearInterval(typing);
+      typing = null;
+      char = lines[line].length;
+      if (line === lines.length - 1) showChoices();
+    }
+  }, 24);
+}
+
+function advanceStory() {
+  if (typing) {
+    clearInterval(typing);
+    typing = null;
+    char = lines[line].length;
+    story.textContent = lines[line];
+    if (line === lines.length - 1) showChoices();
+    return;
+  }
+
+  if (line < lines.length - 1) {
+    line++;
+    typeLine();
+  } else {
+    showChoices();
+  }
+}
+
+btnContinue.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  advanceStory();
+}, { passive:false });
+
+story.classList.add("visible");
+typeLine();
+
+/* Mushroom (clickable ALWAYS) */
+mushHotspot.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  window.location.href = "alien1.html";
+}, { passive:false });
+</script>
+</body>
+</html>
