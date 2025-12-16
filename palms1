@@ -1,1 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sea to Summit, Palms 1</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: black;
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
+}
+
+* {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+body { touch-action: manipulation; }
+
+img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.app {
+  position: fixed;
+  inset: 0;
+  background: black;
+  overflow: hidden;
+}
+
+/* ---------- UNIVERSAL HIDE RULES (no accidental clicks) ---------- */
+.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.is-gone {
+  display: none !important;
+}
+/* --------------------------------------------------------------- */
+
+/* Stage scaling */
+.stage-wrapper {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  width: 1920px;
+  height: 1080px;
+}
+
+.stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.scene { z-index: 1; }
+.frame { z-index: 10; }
+
+/* Story */
+.story {
+  position: absolute;
+  left: 50%;
+  bottom: 180px;
+  transform: translateX(-50%);
+  width: 900px;
+
+  font-family: "Silkscreen";
+  font-size: 30px;
+  line-height: 1.25;
+  color: black;
+
+  opacity: 0;
+  transition: opacity 500ms ease;
+  z-index: 25;
+
+  min-height: 96px;
+  padding: 16px 50px 0 50px;
+  box-sizing: border-box;
+}
+.story.visible { opacity: 1; }
+
+/* Button component */
+.button {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+.button img {
+  width: 420px;
+  image-rendering: pixelated;
+  display: block;
+  pointer-events: none;
+}
+.button span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: "Press Start 2P";
+  font-size: 28px;
+  color: black;
+  pointer-events: none;
+  padding: 0 20px;
+  text-align: center;
+  line-height: 1.05;
+}
+
+/* Continue overlay */
+.continue-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%) scale(0.84);
+  transform-origin: center center;
+  z-index: 40;
+
+  opacity: 1;
+  transition: opacity 250ms ease;
+}
+
+/* Choice row (2 buttons) */
+.choices {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  justify-content: center;
+
+  opacity: 0;
+  transition: opacity 600ms ease;
+  z-index: 30;
+}
+.choices.visible { opacity: 1; }
+
+.choice-link {
+  text-decoration: none;
+  transform: scale(0.84);
+  transform-origin: center center;
+  display: inline-block;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <div class="stage-wrapper" id="stageWrapper">
+    <div class="stage">
+      <img class="layer scene" src="palms1i.png" alt="">
+      <img class="layer frame" src="stsframe3.png" alt="">
+
+      <div class="story visible" id="story"></div>
+
+      <div class="continue-wrap" id="continueWrap">
+        <div class="button" id="btnContinue">
+          <img src="stsbutton.png" alt="">
+          <span>Continue</span>
+        </div>
+      </div>
+
+      <div class="choices is-hidden is-gone" id="choices">
+        <a class="choice-link" id="btnBack" href="start2.html">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Back</span>
+          </div>
+        </a>
+
+        <a class="choice-link" id="btnNext" href="palms2.html">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Continue</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <audio id="waves" src="palms.mp3" preload="auto" loop></audio>
+</div>
+
+<script>
+/* Prevent weird drag behavior */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
+/* Helpers: fade out then fully remove (no accidental clicks) */
+function hideAndGone(el, fadeMs = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), fadeMs);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
+
+/* Scale stage */
+const stageWrapper = document.getElementById("stageWrapper");
+function scaleStage() {
+  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+}
+window.addEventListener("resize", scaleStage);
+scaleStage();
+
+/* Waves persistence */
+const waves = document.getElementById("waves");
+const WAVE_TIME_KEY = "sts_waves_time_v1";
+const WAVE_VOL_KEY  = "sts_waves_vol_v1";
+
+function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+
+function restoreWaves() {
+  const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
+  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
+
+  const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
+  if (Number.isFinite(savedT) && savedT > 0) {
+    try { waves.currentTime = savedT; } catch (_) {}
+  }
+
+  const p = waves.play();
+  if (p && typeof p.catch === "function") {
+    p.catch(() => {
+      document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
+    });
+  }
+}
+
+setInterval(() => {
+  if (!waves.paused && Number.isFinite(waves.currentTime)) {
+    localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+    localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+  }
+}, 300);
+
+window.addEventListener("beforeunload", () => {
+  if (Number.isFinite(waves.currentTime)) {
+    localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
+    localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+  }
+});
+
+restoreWaves();
+
+/* One time scoring for reaching this page */
+function addPointsOnce(flag, points) {
+  if (localStorage.getItem(flag) === "1") return;
+  const total = parseInt(localStorage.getItem("sts_points_v1") || "0", 10);
+  localStorage.setItem("sts_points_v1", String(total + points));
+  localStorage.setItem(flag, "1");
+}
+addPointsOnce("sts_scored_palms1_v1", 1);
+
+/* Story typing using Continue button only (spam-click safe) */
+const story = document.getElementById("story");
+const continueWrap = document.getElementById("continueWrap");
+const btnContinue = document.getElementById("btnContinue");
+const choices = document.getElementById("choices");
+
+const lines = [
+  "You step beneath the palms.",
+  "The air cools instantly, and the sound of the ocean fades behind you.",
+  "Sunlight filters through tall, swaying fronds."
+];
+
+let line = 0;
+let char = 0;
+let typing = null;
+let isTyping = false;
+
+function showChoices() {
+  hideAndGone(continueWrap, 250);
+  choices.classList.add("visible");
+  showFromGone(choices); // removes display:none and pointer-block
+}
+
+function typeLine() {
+  if (typing) clearInterval(typing);
+  typing = null;
+
+  story.textContent = "";
+  char = 0;
+  isTyping = true;
+
+  const current = lines[line];
+
+  typing = setInterval(() => {
+    char++;
+    story.textContent = current.slice(0, char);
+
+    if (char >= current.length) {
+      char = current.length;
+      clearInterval(typing);
+      typing = null;
+      isTyping = false;
+
+      if (line === lines.length - 1) showChoices();
+    }
+  }, 24);
+}
+
+function advanceStory() {
+  const current = lines[line];
+
+  // Finish instantly if typing
+  if (isTyping) {
+    if (typing) clearInterval(typing);
+    typing = null;
+    isTyping = false;
+    char = current.length;
+    story.textContent = current;
+
+    if (line === lines.length - 1) showChoices();
+    return;
+  }
+
+  // Next line
+  if (line < lines.length - 1) {
+    line++;
+    typeLine();
+  }
+}
+
+/* pointerdown = spam-click safe, never misses */
+btnContinue.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  advanceStory();
+}, { passive:false });
+
+/* Start */
+typeLine();
+</script>
+</body>
+</html>
 
