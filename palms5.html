@@ -29,12 +29,27 @@ html, body {
 
 body { touch-action: manipulation; }
 
+img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
 .app {
   position: fixed;
   inset: 0;
   background: black;
   overflow: hidden;
 }
+
+/* ---------- GLOBAL SAFE HIDING ---------- */
+.is-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+.is-gone {
+  display: none !important;
+}
+/* -------------------------------------- */
 
 /* Stage scaling */
 .stage-wrapper {
@@ -59,8 +74,6 @@ body { touch-action: manipulation; }
   width: 1920px;
   height: 1080px;
   image-rendering: pixelated;
-  pointer-events: none;
-  -webkit-user-drag: none;
 }
 
 .scene { z-index: 1; }
@@ -89,7 +102,7 @@ body { touch-action: manipulation; }
 }
 .story.visible { opacity: 1; }
 
-/* Button component */
+/* Button */
 .button {
   position: relative;
   display: inline-block;
@@ -100,7 +113,6 @@ body { touch-action: manipulation; }
   width: 420px;
   image-rendering: pixelated;
   display: block;
-  pointer-events: none;
 }
 
 .button span {
@@ -117,17 +129,14 @@ body { touch-action: manipulation; }
   line-height: 1.05;
 }
 
-/* Continue button (same position as middle choice) */
+/* Continue */
 .continue-wrap {
   position: absolute;
   left: 50%;
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
-}
-.continue-wrap.hidden {
-  opacity: 0;
-  pointer-events: none;
+  transition: opacity 250ms ease;
 }
 
 /* Choices */
@@ -169,22 +178,23 @@ body { touch-action: manipulation; }
         </div>
       </div>
 
-      <div class="choices" id="choices">
-        <a class="choice-link" id="btnBack" href="palms4.html">
+      <!-- start fully gone -->
+      <div class="choices is-hidden is-gone" id="choices">
+        <a class="choice-link" href="palms4.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Back</span>
           </div>
         </a>
 
-        <a class="choice-link" id="btnCave" href="cave1.html">
+        <a class="choice-link" href="cave1.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Enter the Cave</span>
           </div>
         </a>
 
-        <a class="choice-link" id="btnUphill" href="uphill1.html">
+        <a class="choice-link" href="uphill1.html">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Continue Up the Hill</span>
@@ -195,25 +205,32 @@ body { touch-action: manipulation; }
     </div>
   </div>
 
-  <!-- Seamless audio -->
   <audio id="waves" src="palms.mp3" preload="auto" loop></audio>
-
 </div>
 
 <script>
-/* Prevent weird drag behavior */
-document.addEventListener("dragstart", (e) => e.preventDefault());
+document.addEventListener("dragstart", e => e.preventDefault());
 
-/* Stage scaling */
+/* hide helpers */
+function hideAndGone(el, ms = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), ms);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
+
+/* scale */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + scale + ")";
+  stageWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* ---------- SEAMLESS AUDIO (same track resumes across pages) ---------- */
+/* audio persistence */
 const waves = document.getElementById("waves");
 const TIME_KEY = "sts_audio_time_v1";
 const SRC_KEY  = "sts_audio_src_v1";
@@ -222,59 +239,35 @@ const VOL_KEY  = "sts_audio_vol_v1";
 function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
 
 function restoreAudio() {
-  const savedVol = parseFloat(localStorage.getItem(VOL_KEY));
-  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol,0,1) : 0.35;
+  const vol = parseFloat(localStorage.getItem(VOL_KEY));
+  waves.volume = Number.isFinite(vol) ? clamp(vol,0,1) : 0.35;
 
-  const savedSrc = localStorage.getItem(SRC_KEY);
-  const savedTime = parseFloat(localStorage.getItem(TIME_KEY));
-  const thisSrc = waves.getAttribute("src");
-
-  if (savedSrc === thisSrc) {
-    if (Number.isFinite(savedTime) && savedTime > 0) {
-      try { waves.currentTime = savedTime; } catch(e){}
-    }
+  const src = localStorage.getItem(SRC_KEY);
+  const time = parseFloat(localStorage.getItem(TIME_KEY));
+  if (src === waves.src && Number.isFinite(time)) {
+    try { waves.currentTime = time; } catch(e){}
   }
 
   const p = waves.play();
-  if (p && typeof p.catch === "function") {
+  if (p && p.catch) {
     p.catch(() => {
       const resume = () => waves.play().catch(()=>{});
-      document.addEventListener("pointerup", resume, { once:true });
-      document.addEventListener("keydown", resume, { once:true });
+      document.addEventListener("pointerdown", resume, { once:true });
     });
   }
 }
 
-function startSavingAudio() {
-  setInterval(() => {
-    if (!waves.paused && Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(VOL_KEY, String(waves.volume));
-      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
-    }
-  }, 250);
-
-  window.addEventListener("beforeunload", () => {
-    if (Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(VOL_KEY, String(waves.volume));
-      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
-    }
-  });
-
-  document.addEventListener("visibilitychange", () => {
-    if (Number.isFinite(waves.currentTime)) {
-      localStorage.setItem(TIME_KEY, String(waves.currentTime));
-      localStorage.setItem(VOL_KEY, String(waves.volume));
-      localStorage.setItem(SRC_KEY, waves.getAttribute("src"));
-    }
-  });
-}
+setInterval(() => {
+  if (!waves.paused) {
+    localStorage.setItem(TIME_KEY, waves.currentTime);
+    localStorage.setItem(VOL_KEY, waves.volume);
+    localStorage.setItem(SRC_KEY, waves.src);
+  }
+}, 250);
 
 restoreAudio();
-startSavingAudio();
 
-/* ---------- STORY (Continue button only, FIXED) ---------- */
+/* story */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -289,62 +282,54 @@ const lines = [
 let line = 0;
 let char = 0;
 let typing = null;
+let isTyping = false;
 
 function showChoices() {
-  continueWrap.classList.add("hidden");
+  hideAndGone(continueWrap);
   choices.classList.add("visible");
+  showFromGone(choices);
 }
 
 function typeLine() {
   if (typing) clearInterval(typing);
-  typing = null;
-
-  story.textContent = "";
   char = 0;
+  isTyping = true;
+  story.textContent = "";
 
   typing = setInterval(() => {
     char++;
     story.textContent = lines[line].slice(0, char);
-
     if (char >= lines[line].length) {
-      char = lines[line].length;     /* KEY FIX */
+      char = lines[line].length;
       clearInterval(typing);
       typing = null;
+      isTyping = false;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
-  const currentLen = lines[line].length;
-
-  /* If typing, first tap finishes the current line */
-  if (typing) {
+  if (isTyping) {
     clearInterval(typing);
     typing = null;
-    char = currentLen;               /* KEY FIX */
+    isTyping = false;
     story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
   }
-
-  /* If finished line, next tap goes to next line */
   if (line < lines.length - 1) {
     line++;
     typeLine();
-  } else {
-    showChoices();
   }
 }
 
-/* pointerdown makes fast clicks reliable */
-btnContinue.addEventListener("pointerdown", (e) => {
+btnContinue.addEventListener("pointerdown", e => {
   e.preventDefault();
   e.stopPropagation();
   advanceStory();
 }, { passive:false });
 
-/* Start */
 typeLine();
 </script>
 </body>
