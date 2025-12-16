@@ -21,6 +21,7 @@ html, body {
 }
 
 body { touch-action: manipulation; }
+
 * {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
@@ -68,25 +69,30 @@ body { touch-action: manipulation; }
 .mushLayer { z-index: 6; }
 .frame { z-index: 10; }
 
+/* Story */
 .story {
   position: absolute;
   left: 50%;
   bottom: 180px;
   transform: translateX(-50%);
   width: 900px;
+
   font-family: Silkscreen;
   font-size: 26px;
   line-height: 1.25;
   color: black;
+
   z-index: 25;
   min-height: 96px;
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
+
   opacity: 0;
   transition: opacity 500ms ease;
 }
 .story.visible { opacity: 1; }
 
+/* Button component */
 .button {
   position: relative;
   cursor: pointer;
@@ -99,17 +105,25 @@ body { touch-action: manipulation; }
   pointer-events: none;
 }
 
+/* === STANDARD BUTTON TEXT (MATCHES ENTIRE GAME) === */
 .button span {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
+
   font-family: "Press Start 2P";
-  font-size: 28px;
+  font-size: 26px;
+  letter-spacing: -1px;
   color: black;
+
   pointer-events: none;
+  padding: 0 20px;
+  text-align: center;
+  line-height: 1.05;
 }
 
+/* Continue button */
 .continue-wrap {
   position: absolute;
   left: 50%;
@@ -119,6 +133,7 @@ body { touch-action: manipulation; }
   transition: opacity 250ms ease;
 }
 
+/* Choices row */
 .choices {
   position: absolute;
   left: 50%;
@@ -127,6 +142,7 @@ body { touch-action: manipulation; }
   display: flex;
   gap: 20px;
   z-index: 30;
+
   opacity: 0;
   pointer-events: none;
   transition: opacity 600ms ease;
@@ -139,8 +155,10 @@ body { touch-action: manipulation; }
 .choice-link {
   text-decoration: none;
   transform: scale(0.84);
+  transform-origin: center center;
 }
 
+/* Mushroom hotspot */
 .mushHotspot {
   position: absolute;
   z-index: 20;
@@ -152,57 +170,57 @@ body { touch-action: manipulation; }
 <body>
 <div class="app">
 
-<div class="stage-wrapper" id="stageWrapper">
-<div class="stage" id="stage">
+  <div class="stage-wrapper" id="stageWrapper">
+    <div class="stage" id="stage">
 
-<img class="layer scene" src="summit3i.png">
-<img class="layer mushLayer" src="mushroom.png">
-<img class="layer frame" src="stsframe3.png">
+      <img class="layer scene" src="summit3i.png" alt="">
+      <img class="layer mushLayer" src="mushroom.png" alt="">
+      <img class="layer frame" src="stsframe3.png" alt="">
 
-<div id="mushHotspot" class="mushHotspot"
-     style="left:59.9%; top:58.4%; width:4.7%; height:8.3%;"></div>
+      <div id="mushHotspot" class="mushHotspot"
+           style="left:59.9%; top:58.4%; width:4.7%; height:8.3%;"></div>
 
-<div class="story" id="story"></div>
+      <div class="story" id="story"></div>
 
-<div class="continue-wrap" id="continueWrap">
-  <div class="button" id="btnContinue">
-    <img src="stsbutton.png">
-    <span>Continue</span>
+      <div class="continue-wrap" id="continueWrap">
+        <div class="button" id="btnContinue">
+          <img src="stsbutton.png" alt="">
+          <span>Continue</span>
+        </div>
+      </div>
+
+      <div class="choices is-hidden is-gone" id="choices">
+        <a class="choice-link" href="end.html?choice=breath">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Take a deep breath</span>
+          </div>
+        </a>
+
+        <a class="choice-link" href="end.html?choice=eyes">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Close your eyes</span>
+          </div>
+        </a>
+
+        <a class="choice-link" href="end.html?choice=think">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Sit down and think</span>
+          </div>
+        </a>
+      </div>
+
+    </div>
   </div>
-</div>
 
-<div class="choices is-hidden is-gone" id="choices">
-  <a class="choice-link" href="end.html?choice=breath">
-    <div class="button">
-      <img src="stsbutton.png">
-      <span>Take a deep breath</span>
-    </div>
-  </a>
-
-  <a class="choice-link" href="end.html?choice=eyes">
-    <div class="button">
-      <img src="stsbutton.png">
-      <span>Close your eyes</span>
-    </div>
-  </a>
-
-  <a class="choice-link" href="end.html?choice=think">
-    <div class="button">
-      <img src="stsbutton.png">
-      <span>Sit down and think</span>
-    </div>
-  </a>
-</div>
-
-</div>
-</div>
-
-<div class="flash" id="flash"></div>
-<audio id="wind" src="wind.mp3" preload="auto" loop></audio>
+  <audio id="wind" src="wind.mp3" preload="auto" loop></audio>
 
 </div>
 
 <script>
+/* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
@@ -212,7 +230,7 @@ window.addEventListener("resize", scaleStage);
 scaleStage();
 
 /* Helpers */
-function hideAndRemove(el, delay=250) {
+function hideAndRemove(el, delay = 250) {
   el.classList.add("is-hidden");
   setTimeout(() => el.classList.add("is-gone"), delay);
 }
@@ -234,7 +252,9 @@ const lines = [
   "Whatever happens next begins with you."
 ];
 
-let line = 0, char = 0, typing = null;
+let line = 0;
+let char = 0;
+let typing = null;
 
 function showChoices() {
   hideAndRemove(continueWrap);
@@ -247,12 +267,15 @@ function typeLine() {
   clearInterval(typing);
   story.textContent = "";
   char = 0;
+
   typing = setInterval(() => {
     char++;
     story.textContent = lines[line].slice(0, char);
+
     if (char >= lines[line].length) {
       clearInterval(typing);
       typing = null;
+      char = lines[line].length;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
@@ -266,6 +289,7 @@ function advanceStory() {
     if (line === lines.length - 1) showChoices();
     return;
   }
+
   if (line < lines.length - 1) {
     line++;
     typeLine();
