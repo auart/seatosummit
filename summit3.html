@@ -161,8 +161,10 @@ body { touch-action: manipulation; }
 /* Mushroom hotspot */
 .mushHotspot {
   position: absolute;
-  z-index: 20;
+  z-index: 60;                    /* FIX: above choices + continue */
   cursor: pointer;
+  pointer-events: auto;
+  background: rgba(255,255,255,0);
 }
 </style>
 </head>
@@ -227,6 +229,7 @@ function scaleStage() {
   stageWrapper.style.transform = "translate(-50%, -50%) scale(" + s + ")";
 }
 window.addEventListener("resize", scaleStage);
+window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
 /* Helpers */
@@ -238,6 +241,55 @@ function showFromGone(el) {
   el.classList.remove("is-gone");
   requestAnimationFrame(() => el.classList.remove("is-hidden"));
 }
+
+/* Wind persistence */
+const wind = document.getElementById("wind");
+const WIND_TIME_KEY = "sts_wind_time_v1";
+const WIND_VOL_KEY  = "sts_wind_vol_v1";
+function clamp(n,a,b){ return Math.max(a, Math.min(b, n)); }
+
+function restoreWind() {
+  const savedVol = parseFloat(localStorage.getItem(WIND_VOL_KEY));
+  wind.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
+
+  const savedT = parseFloat(localStorage.getItem(WIND_TIME_KEY));
+  if (Number.isFinite(savedT) && savedT > 0) {
+    try { wind.currentTime = savedT; } catch (_) {}
+  }
+
+  const p = wind.play();
+  if (p && typeof p.catch === "function") {
+    p.catch(() => {
+      const resume = () => wind.play().catch(()=>{});
+      document.addEventListener("pointerup", resume, { once:true });
+      document.addEventListener("keydown", resume, { once:true });
+    });
+  }
+}
+function startSavingWind() {
+  setInterval(() => {
+    if (!wind.paused && Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
+    }
+  }, 250);
+
+  document.addEventListener("visibilitychange", () => {
+    if (Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
+    }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    if (Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(WIND_TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
+    }
+  });
+}
+restoreWind();
+startSavingWind();
 
 /* Story */
 const story = document.getElementById("story");
@@ -255,16 +307,20 @@ const lines = [
 let line = 0;
 let char = 0;
 let typing = null;
+let showingChoices = false;
 
 function showChoices() {
+  if (showingChoices) return;
+  showingChoices = true;
+
   hideAndRemove(continueWrap);
-  mushHotspot.style.pointerEvents = "none";
   choices.classList.add("visible");
   showFromGone(choices);
 }
 
 function typeLine() {
   clearInterval(typing);
+  typing = null;
   story.textContent = "";
   char = 0;
 
@@ -285,6 +341,7 @@ function advanceStory() {
   if (typing) {
     clearInterval(typing);
     typing = null;
+    char = lines[line].length;
     story.textContent = lines[line];
     if (line === lines.length - 1) showChoices();
     return;
@@ -293,21 +350,26 @@ function advanceStory() {
   if (line < lines.length - 1) {
     line++;
     typeLine();
+  } else {
+    showChoices();
   }
 }
 
-btnContinue.addEventListener("pointerdown", e => {
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
+  e.stopPropagation();
   advanceStory();
 }, { passive:false });
 
 story.classList.add("visible");
 typeLine();
 
-/* Mushroom */
-mushHotspot.addEventListener("click", () => {
+/* Mushroom (clickable ALWAYS) */
+mushHotspot.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
   window.location.href = "alien1.html";
-});
+}, { passive:false });
 </script>
 </body>
 </html>
