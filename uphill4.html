@@ -143,8 +143,9 @@ img { pointer-events: none; -webkit-user-drag: none; }
   opacity: 0;
   transition: opacity 600ms ease;
   z-index: 30;
+  pointer-events: none;
 }
-.choices.visible { opacity: 1; }
+.choices.visible { opacity: 1; pointer-events: auto; }
 
 .choice-link {
   text-decoration: none;
@@ -172,7 +173,6 @@ img { pointer-events: none; -webkit-user-drag: none; }
         </div>
       </div>
 
-      <!-- start fully non-clickable + not in layout -->
       <div class="choices is-hidden is-gone" id="choices">
         <a class="choice-link" id="btnUpward" href="uphill5.html">
           <div class="button">
@@ -189,10 +189,17 @@ img { pointer-events: none; -webkit-user-drag: none; }
 </div>
 
 <script>
+/* HARD scroll lock */
+window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
+window.addEventListener("keydown", e => {
+  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
+});
+
 /* Prevent weird drag behavior */
 document.addEventListener("dragstart", (e) => e.preventDefault());
 
-/* Utility hide/show (prevents invisible overlay blocking clicks) */
+/* Utility hide/show */
 function hideAndGone(el, delay = 250) {
   el.classList.add("is-hidden");
   setTimeout(() => el.classList.add("is-gone"), delay);
@@ -260,8 +267,11 @@ let line = 0;
 let char = 0;
 let typing = null;
 let isTyping = false;
+let showingChoices = false;
 
 function showChoices() {
+  if (showingChoices) return;
+  showingChoices = true;
   hideAndGone(continueWrap);
   choices.classList.add("visible");
   showFromGone(choices);
@@ -305,13 +315,32 @@ function advanceStory() {
   }
 }
 
-/* Use pointerdown so fast clicks never miss */
+/* Continue button */
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
   unlockWind();
   advanceStory();
 }, { passive: false });
+
+/* Click anywhere to advance (and unlock audio), but do NOT steal clicks on links or Continue */
+let downX = 0, downY = 0;
+document.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("a") || e.target.closest("#btnContinue")) return;
+  downX = e.clientX;
+  downY = e.clientY;
+}, { passive:true });
+
+document.addEventListener("pointerup", (e) => {
+  if (e.target.closest("a") || e.target.closest("#btnContinue")) return;
+
+  const dx = Math.abs(e.clientX - downX);
+  const dy = Math.abs(e.clientY - downY);
+  if (dx > 10 || dy > 10) return;
+
+  unlockWind();
+  advanceStory();
+}, { passive:true });
 
 /* Start */
 story.classList.add("visible");
