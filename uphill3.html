@@ -24,9 +24,16 @@ html, body {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 body { touch-action: manipulation; }
+
+img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
 
 .app {
   position: fixed;
@@ -34,6 +41,11 @@ body { touch-action: manipulation; }
   background: black;
 }
 
+/* Universal hide rules */
+.is-hidden { opacity: 0 !important; pointer-events: none !important; }
+.is-gone { display: none !important; }
+
+/* Stage scaling */
 .stage-wrapper {
   position: absolute;
   left: 50%;
@@ -62,33 +74,39 @@ body { touch-action: manipulation; }
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
+/* Story */
 .story {
   position: absolute;
   left: 50%;
   bottom: 180px;
   transform: translateX(-50%);
   width: 900px;
-  font-family: Silkscreen;
+
+  font-family: "Silkscreen";
   font-size: 30px;
   line-height: 1.25;
   color: black;
+
+  opacity: 0;
+  transition: opacity 500ms ease;
   z-index: 25;
+
   min-height: 96px;
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
-  opacity: 0;
-  transition: opacity 400ms ease;
 }
 .story.visible { opacity: 1; }
 
+/* Button */
 .button {
   position: relative;
-  cursor: pointer;
   display: inline-block;
+  cursor: pointer;
 }
 .button img {
   width: 420px;
   image-rendering: pixelated;
+  display: block;
   pointer-events: none;
 }
 .button span {
@@ -97,33 +115,38 @@ body { touch-action: manipulation; }
   display: grid;
   place-items: center;
   font-family: "Press Start 2P";
-  font-size: 26px;
-  letter-spacing: -1px;
+  font-size: 28px;
   color: black;
   pointer-events: none;
-  text-align: center;
   padding: 0 20px;
+  text-align: center;
+  line-height: 1.05;
+  letter-spacing: -1px;
 }
 
+/* Continue */
 .continue-wrap {
   position: absolute;
   left: 50%;
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
+  transition: opacity 250ms ease;
 }
 
+/* Choices */
 .choices {
   position: absolute;
   left: 50%;
   bottom: 5px;
   transform: translateX(-50%);
   display: flex;
-  gap: 24px;
+  gap: 26px;
   z-index: 30;
+
   opacity: 0;
   pointer-events: none;
-  transition: opacity 500ms ease;
+  transition: opacity 600ms ease;
 }
 .choices.visible {
   opacity: 1;
@@ -133,19 +156,21 @@ body { touch-action: manipulation; }
 .choice-link {
   text-decoration: none;
   transform: scale(0.84);
+  transform-origin: center center;
 }
 </style>
 </head>
 
 <body>
 <div class="app">
+
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
 
       <img class="layer scene" src="uphill3i.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <div class="story" id="story"></div>
+      <div class="story visible" id="story"></div>
 
       <div class="continue-wrap" id="continueWrap">
         <div class="button" id="btnContinue">
@@ -154,7 +179,7 @@ body { touch-action: manipulation; }
         </div>
       </div>
 
-      <div class="choices" id="choices">
+      <div class="choices is-hidden is-gone" id="choices">
         <a class="choice-link" href="summit1.html" id="btnSlow">
           <div class="button">
             <img src="stsbutton.png" alt="">
@@ -172,9 +197,26 @@ body { touch-action: manipulation; }
 
     </div>
   </div>
+
+  <audio id="wind" src="wind.mp3" preload="auto" loop></audio>
+
 </div>
 
 <script>
+/* HARD scroll lock */
+window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
+
+/* Helpers */
+function hideAndGone(el, fadeMs = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), fadeMs);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
+
 /* Scale */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -182,7 +224,19 @@ function scaleStage() {
   stageWrapper.style.transform = "translate(-50%, -50%) scale(" + s + ")";
 }
 window.addEventListener("resize", scaleStage);
+window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
+
+/* Wind audio */
+const wind = document.getElementById("wind");
+wind.volume = 0.12;
+
+const p = wind.play();
+if (p && typeof p.catch === "function") {
+  p.catch(() => {
+    document.addEventListener("pointerup", () => wind.play().catch(()=>{}), { once:true });
+  });
+}
 
 /* Story */
 const story = document.getElementById("story");
@@ -193,40 +247,52 @@ const choices = document.getElementById("choices");
 const lines = [
   "The trail steepens as the summit draws closer.",
   "Loose stones shift beneath your feet.",
-  "You feel the strain in your legs, and the wind presses harder.",
+  "The wind presses harder, testing your balance.",
   "There are two ways forward."
 ];
 
 let line = 0;
 let char = 0;
 let typing = null;
+let isTyping = false;
+let showingChoices = false;
+
+function showChoices() {
+  if (showingChoices) return;
+  showingChoices = true;
+  hideAndGone(continueWrap);
+  choices.classList.add("visible");
+  showFromGone(choices);
+}
 
 function typeLine() {
   if (typing) clearInterval(typing);
+  typing = null;
   story.textContent = "";
   char = 0;
+  isTyping = true;
 
+  const current = lines[line];
   typing = setInterval(() => {
     char++;
-    story.textContent = lines[line].slice(0, char);
-    if (char >= lines[line].length) {
+    story.textContent = current.slice(0, char);
+    if (char >= current.length) {
       clearInterval(typing);
       typing = null;
+      isTyping = false;
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
-function showChoices() {
-  continueWrap.style.display = "none";
-  choices.classList.add("visible");
-}
-
 function advanceStory() {
-  if (typing) {
-    clearInterval(typing);
+  const current = lines[line];
+
+  if (isTyping) {
+    if (typing) clearInterval(typing);
     typing = null;
-    story.textContent = lines[line];
+    isTyping = false;
+    story.textContent = current;
     if (line === lines.length - 1) showChoices();
     return;
   }
@@ -234,18 +300,31 @@ function advanceStory() {
   if (line < lines.length - 1) {
     line++;
     typeLine();
+  } else {
+    showChoices();
   }
 }
 
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
+  e.stopPropagation();
   advanceStory();
 }, { passive:false });
 
-story.classList.add("visible");
-typeLine();
+/* Click anywhere */
+let downX = 0, downY = 0;
+document.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("a") || e.target.closest("#btnContinue")) return;
+  downX = e.clientX;
+  downY = e.clientY;
+});
+document.addEventListener("pointerup", (e) => {
+  if (e.target.closest("a") || e.target.closest("#btnContinue")) return;
+  if (Math.abs(e.clientX - downX) > 10 || Math.abs(e.clientY - downY) > 10) return;
+  advanceStory();
+});
 
-/* POINTS + NAV (CRITICAL FIX) */
+/* Points + nav */
 function addOnce(flag, key, amt) {
   if (localStorage.getItem(flag) === "1") return;
   const v = parseInt(localStorage.getItem(key) || "0", 10);
@@ -253,27 +332,22 @@ function addOnce(flag, key, amt) {
   localStorage.setItem(flag, "1");
 }
 
-function go(url) {
-  window.location.href = url;
-}
-
-const btnSlow = document.getElementById("btnSlow");
-const btnScramble = document.getElementById("btnScramble");
-
-btnSlow.addEventListener("pointerdown", (e) => {
+document.getElementById("btnSlow").addEventListener("pointerdown", (e) => {
   e.preventDefault();
-  e.stopPropagation();
-  addOnce("sts_uphill3_slow", "sts_wisdom", 1);
+  addOnce("sts_uphill3_slow_w", "sts_wisdom", 1);
   addOnce("sts_uphill3_slow_c", "sts_comfort", 1);
-  go(btnSlow.getAttribute("href"));
+  window.location.href = "summit1.html";
 }, { passive:false });
 
-btnScramble.addEventListener("pointerdown", (e) => {
+document.getElementById("btnScramble").addEventListener("pointerdown", (e) => {
   e.preventDefault();
-  e.stopPropagation();
   addOnce("sts_uphill3_scramble", "sts_courage", 1);
-  go(btnScramble.getAttribute("href"));
+  window.location.href = "summit1.html";
 }, { passive:false });
+
+/* Start */
+story.classList.add("visible");
+typeLine();
 </script>
 </body>
 </html>
