@@ -188,7 +188,6 @@ img {
         </div>
       </div>
 
-      <!-- start hidden AND unclickable -->
       <div class="choices is-hidden is-gone" id="choices">
         <a class="choice-link" id="btnStream" href="waterfall1.html">
           <div class="button">
@@ -214,7 +213,7 @@ img {
     </div>
   </div>
 
-  <audio id="waves" src="palms.mp3" preload="auto" loop></audio>
+  <audio id="waves" src="stream.mp3" preload="auto" loop></audio>
 </div>
 
 <script>
@@ -242,7 +241,7 @@ scaleStage();
 
 /* Audio */
 const waves = document.getElementById("waves");
-waves.volume = 0.35;
+waves.volume = 0.30;
 waves.play().catch(() => {
   document.addEventListener("pointerdown", () => waves.play().catch(()=>{}), { once:true });
 });
@@ -254,10 +253,8 @@ const choices = document.getElementById("choices");
 const btnContinue = document.getElementById("btnContinue");
 
 const lines = [
-  "The grove opens suddenly.",
-  "A narrow stream cuts across your path, slipping between rocks and roots before disappearing into thicker trees.",
-  "One path follows the water toward a distant rushing sound.",
-  "The other winds deeper into the palms, quieter and darker."
+  "A narrow stream crosses your path.",
+  "One way follows the water, the other the trees."
 ];
 
 let line = 0;
