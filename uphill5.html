@@ -147,6 +147,7 @@ img { pointer-events: none; -webkit-user-drag: none; }
   text-decoration: none;
   transform: scale(0.84);
   transform-origin: center center;
+  display: inline-block;
 }
 </style>
 </head>
@@ -191,6 +192,16 @@ img { pointer-events: none; -webkit-user-drag: none; }
 </div>
 
 <script>
+/* Prevent weird drag behavior */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
+/* HARD scroll lock */
+window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
+window.addEventListener("keydown", e => {
+  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
+});
+
 /* Scale */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
@@ -201,17 +212,22 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Audio unlock on first gesture */
+/* Wind audio: try immediately, fallback to first gesture */
 const wind = document.getElementById("wind");
-let audioUnlocked = false;
-function unlockAudio() {
-  if (audioUnlocked) return;
-  audioUnlocked = true;
+function tryPlayWind() {
+  if (!wind) return;
+  wind.muted = false;
   wind.volume = 0.45;
-  wind.play().catch(()=>{});
+  const p = wind.play();
+  if (p && p.catch) p.catch(()=>{});
 }
-document.addEventListener("pointerdown", unlockAudio, { capture:true, once:true });
-document.addEventListener("keydown", unlockAudio, { capture:true, once:true });
+
+/* Attempt immediate play (works if audio already unlocked) */
+tryPlayWind();
+
+/* Fallback: first user gesture unlock */
+document.addEventListener("pointerdown", tryPlayWind, { once:true, capture:true });
+document.addEventListener("keydown", tryPlayWind, { once:true, capture:true });
 
 /* Story */
 const story = document.getElementById("story");
@@ -234,7 +250,8 @@ let choicesShown = false;
 function showChoices() {
   if (choicesShown) return;
   choicesShown = true;
-  continueWrap.remove();
+  continueWrap.classList.add("is-hidden");
+  setTimeout(() => continueWrap.classList.add("is-gone"), 200);
   choices.classList.add("visible");
   choices.classList.remove("is-hidden","is-gone");
 }
@@ -279,11 +296,11 @@ function advanceStory() {
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
-  unlockAudio();
+  tryPlayWind();
   advanceStory();
 }, { passive:false });
 
-/* Click anywhere to advance */
+/* Click anywhere to advance (don’t steal clicks on links or Continue) */
 let downX = 0, downY = 0;
 document.addEventListener("pointerdown", (e) => {
   if (e.target.closest("a") || e.target.closest("#btnContinue")) return;
@@ -296,7 +313,7 @@ document.addEventListener("pointerup", (e) => {
   const dx = Math.abs(e.clientX - downX);
   const dy = Math.abs(e.clientY - downY);
   if (dx > 10 || dy > 10) return;
-  unlockAudio();
+  tryPlayWind();
   advanceStory();
 }, { passive:true });
 
