@@ -213,28 +213,39 @@ img {
   transform: scale(0.84);
 }
 
-/* Ripple effect */
-.ripple {
+/* Multi-ring ripple */
+.ripples {
   position: absolute;
   z-index: 8;
   width: 12px;
   height: 12px;
-  border: 3px solid rgba(255,255,255,0.95);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.ripple-ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%) scale(0.1);
+  border: 2px solid rgba(255,255,255,0.95);
   border-radius: 999px;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -50%) scale(0.1);
-  filter: blur(0px);
 }
 
-@keyframes rippleOut {
-  0%   { opacity: 0.9; transform: translate(-50%, -50%) scale(0.1); }
-  70%  { opacity: 0.45; }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(26); }
+@keyframes rippleOutThin {
+  0%   { opacity: 0.85; transform: translate(-50%, -50%) scale(0.12); }
+  70%  { opacity: 0.30; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(34); }
 }
-.ripple.on {
-  animation: rippleOut 1200ms ease-out forwards;
-}
+
+.ripples.on .r1 { animation: rippleOutThin 1200ms ease-out forwards; }
+.ripples.on .r2 { animation: rippleOutThin 1350ms ease-out 120ms forwards; }
+.ripples.on .r3 { animation: rippleOutThin 1500ms ease-out 240ms forwards; }
+.ripples.on .r4 { animation: rippleOutThin 1650ms ease-out 360ms forwards; }
 </style>
 </head>
 
@@ -249,7 +260,12 @@ img {
       <img class="layer frame" src="stsframe3.png" alt="">
 
       <!-- EDIT THESE % VALUES LATER to match the spiral position -->
-      <div class="ripple" id="ripple" style="left:56%; top:62%;"></div>
+      <div class="ripples" id="ripples" style="left:56%; top:62%;">
+        <div class="ripple-ring r1"></div>
+        <div class="ripple-ring r2"></div>
+        <div class="ripple-ring r3"></div>
+        <div class="ripple-ring r4"></div>
+      </div>
 
       <div class="story visible" id="story"></div>
 
@@ -295,7 +311,7 @@ img {
     </div>
   </div>
 
-  <audio id="waves" src="waves.mp3" preload="auto" loop></audio>
+  <audio id="waterfall" src="waterfall.mp3" preload="auto" loop></audio>
 </div>
 
 <script>
@@ -329,53 +345,53 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Waves persistence */
-const waves = document.getElementById("waves");
+/* Audio persistence (same keys, new file) */
+const waterfall = document.getElementById("waterfall");
 const WAVE_TIME_KEY = "sts_waves_time_v1";
 const WAVE_VOL_KEY  = "sts_waves_vol_v1";
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
-function restoreWaves() {
+function restoreWaterfall() {
   const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
-  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
+  waterfall.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.08;
 
   const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
   if (Number.isFinite(savedT) && savedT > 0) {
-    try { waves.currentTime = savedT; } catch (_) {}
+    try { waterfall.currentTime = savedT; } catch (_) {}
   }
 
-  const p = waves.play();
+  const p = waterfall.play();
   if (p && typeof p.catch === "function") {
     p.catch(() => {
-      document.addEventListener("pointerup", () => waves.play().catch(()=>{}), { once:true });
-      document.addEventListener("keydown", () => waves.play().catch(()=>{}), { once:true });
+      document.addEventListener("pointerup", () => waterfall.play().catch(()=>{}), { once:true });
+      document.addEventListener("keydown", () => waterfall.play().catch(()=>{}), { once:true });
     });
   }
 }
 
 setInterval(() => {
-  if (!waves.paused && Number.isFinite(waves.currentTime)) {
-    localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-    localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+  if (!waterfall.paused && Number.isFinite(waterfall.currentTime)) {
+    localStorage.setItem(WAVE_TIME_KEY, String(waterfall.currentTime));
+    localStorage.setItem(WAVE_VOL_KEY, String(waterfall.volume));
   }
 }, 300);
 
 window.addEventListener("beforeunload", () => {
-  if (Number.isFinite(waves.currentTime)) {
-    localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-    localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+  if (Number.isFinite(waterfall.currentTime)) {
+    localStorage.setItem(WAVE_TIME_KEY, String(waterfall.currentTime));
+    localStorage.setItem(WAVE_VOL_KEY, String(waterfall.volume));
   }
 });
 
 document.addEventListener("visibilitychange", () => {
-  if (Number.isFinite(waves.currentTime)) {
-    localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
-    localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
+  if (Number.isFinite(waterfall.currentTime)) {
+    localStorage.setItem(WAVE_TIME_KEY, String(waterfall.currentTime));
+    localStorage.setItem(WAVE_VOL_KEY, String(waterfall.volume));
   }
 });
 
-restoreWaves();
+restoreWaterfall();
 
 /* Points (once) */
 function addPointsOnce(flagKey, scoreKey, amount) {
@@ -393,7 +409,7 @@ const choices = document.getElementById("choices");
 const swimWrap = document.getElementById("swimWrap");
 
 const lines = [
-  "Water pours into the quiet pool, and something glows beneath the surface.",
+  "Water pours into a quiet pool, and something glows beneath the surface.",
   "A spiral shape shines faintly through the ripples.",
   "The light seems to breathe."
 ];
@@ -489,7 +505,7 @@ document.addEventListener("pointerup", (e) => {
 /* Choice effects */
 const glowImg = document.getElementById("glowImg");
 const sceneImg = document.getElementById("sceneImg");
-const ripple = document.getElementById("ripple");
+const ripples = document.getElementById("ripples");
 
 let choiceLocked = false;
 
@@ -513,10 +529,10 @@ function setGlowOpacity(val, ms) {
   glowImg.style.opacity = String(val);
 }
 
-function runRipple() {
-  ripple.classList.remove("on");
-  void ripple.offsetWidth;
-  ripple.classList.add("on");
+function runRipples() {
+  ripples.classList.remove("on");
+  void ripples.offsetWidth;
+  ripples.classList.add("on");
 }
 
 /* Buttons */
@@ -550,7 +566,7 @@ btnTouch.addEventListener("pointerdown", (e) => {
   setGlowOpacity(1, 450);
   sceneImg.style.filter = "brightness(1.08)";
   story.textContent = "The glow flares bright and a ripple rolls through the water. For a moment everything shines.";
-  runRipple();
+  runRipples();
 
   lockChoicesAndShowSwim();
 }, { passive:false });
