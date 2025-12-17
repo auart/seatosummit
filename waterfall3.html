@@ -230,22 +230,24 @@ img {
   width: 12px;
   height: 12px;
   transform: translate(-50%, -50%) scale(0.1);
-  border: 2px solid rgba(255,255,255,0.95);
+  border: 1px solid rgba(255,255,255,0.95);
   border-radius: 999px;
   opacity: 0;
   pointer-events: none;
 }
 
 @keyframes rippleOutThin {
-  0%   { opacity: 0.85; transform: translate(-50%, -50%) scale(0.12); }
-  70%  { opacity: 0.30; }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(34); }
+  0%   { opacity: 0.75; transform: translate(-50%, -50%) scale(0.12); }
+  65%  { opacity: 0.22; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(180); }
 }
 
 .ripples.on .r1 { animation: rippleOutThin 1200ms ease-out forwards; }
-.ripples.on .r2 { animation: rippleOutThin 1350ms ease-out 120ms forwards; }
-.ripples.on .r3 { animation: rippleOutThin 1500ms ease-out 240ms forwards; }
-.ripples.on .r4 { animation: rippleOutThin 1650ms ease-out 360ms forwards; }
+.ripples.on .r2 { animation: rippleOutThin 1320ms ease-out 120ms forwards; }
+.ripples.on .r3 { animation: rippleOutThin 1440ms ease-out 240ms forwards; }
+.ripples.on .r4 { animation: rippleOutThin 1560ms ease-out 360ms forwards; }
+.ripples.on .r5 { animation: rippleOutThin 1680ms ease-out 480ms forwards; }
+.ripples.on .r6 { animation: rippleOutThin 1800ms ease-out 600ms forwards; }
 </style>
 </head>
 
@@ -259,12 +261,14 @@ img {
       <img class="layer glow pulse" id="glowImg" src="waterfallglow.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <!-- EDIT THESE % VALUES LATER to match the spiral position -->
-      <div class="ripples" id="ripples" style="left:56%; top:62%;">
+      <!-- Ripple origin (tweak these two % if needed) -->
+      <div class="ripples" id="ripples" style="left:49.2%; top:55.4%;">
         <div class="ripple-ring r1"></div>
         <div class="ripple-ring r2"></div>
         <div class="ripple-ring r3"></div>
         <div class="ripple-ring r4"></div>
+        <div class="ripple-ring r5"></div>
+        <div class="ripple-ring r6"></div>
       </div>
 
       <div class="story visible" id="story"></div>
@@ -345,7 +349,7 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Audio persistence (same keys, new file) */
+/* Audio persistence (same keys) */
 const waterfall = document.getElementById("waterfall");
 const WAVE_TIME_KEY = "sts_waves_time_v1";
 const WAVE_VOL_KEY  = "sts_waves_vol_v1";
@@ -354,7 +358,7 @@ function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
 function restoreWaterfall() {
   const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
-  waterfall.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.08;
+  waterfall.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.04;
 
   const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
   if (Number.isFinite(savedT) && savedT > 0) {
@@ -565,7 +569,7 @@ btnTouch.addEventListener("pointerdown", (e) => {
   stopGlowAnimations();
   setGlowOpacity(1, 450);
   sceneImg.style.filter = "brightness(1.08)";
-  story.textContent = "The glow flares bright and a ripple rolls through the water.";
+  story.textContent = "The glow flares bright and a ripple rolls through the water. For a moment everything shines.";
   runRipples();
 
   lockChoicesAndShowSwim();
