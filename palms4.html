@@ -201,7 +201,7 @@ img {
     </div>
   </div>
 
-  <audio id="waves" src="palms.mp3" preload="auto" loop></audio>
+  <audio id="waves" src="palms.mp3" preload="auto" loop playsinline></audio>
 </div>
 
 <script>
@@ -235,12 +235,22 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Palms audio persistence (match Palms pages) */
+/* Palms audio persistence (robust resume + guaranteed gesture play) */
 const waves = document.getElementById("waves");
 const WAVE_TIME_KEY = "sts_waves_time_v1";
 const WAVE_VOL_KEY  = "sts_waves_vol_v1";
 
 function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
+
+function tryPlayWaves() {
+  if (!waves) return;
+  waves.muted = false;
+  const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
+  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
+
+  const p = waves.play();
+  if (p && typeof p.catch === "function") p.catch(()=>{});
+}
 
 function restoreWaves() {
   const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
@@ -251,36 +261,34 @@ function restoreWaves() {
     try { waves.currentTime = savedT; } catch (_) {}
   }
 
-  const p = waves.play();
-  if (p && typeof p.catch === "function") {
-    p.catch(() => {
-      const resume = () => waves.play().catch(()=>{});
-      document.addEventListener("pointerdown", resume, { once:true, capture:true });
-      document.addEventListener("keydown", resume, { once:true, capture:true });
-    });
-  }
+  tryPlayWaves();
 }
 
+/* Save time frequently */
 setInterval(() => {
-  if (!waves.paused && Number.isFinite(waves.currentTime)) {
+  if (waves && !waves.paused && Number.isFinite(waves.currentTime)) {
     localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
     localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
   }
 }, 300);
 
 window.addEventListener("beforeunload", () => {
-  if (Number.isFinite(waves.currentTime)) {
+  if (waves && Number.isFinite(waves.currentTime)) {
     localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
     localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
   }
 });
 
 document.addEventListener("visibilitychange", () => {
-  if (Number.isFinite(waves.currentTime)) {
+  if (waves && Number.isFinite(waves.currentTime)) {
     localStorage.setItem(WAVE_TIME_KEY, String(waves.currentTime));
     localStorage.setItem(WAVE_VOL_KEY, String(waves.volume));
   }
 });
+
+/* If autoplay is blocked, ANY user gesture (including Continue) will start audio */
+document.addEventListener("pointerdown", tryPlayWaves, { capture:true });
+document.addEventListener("keydown", tryPlayWaves, { capture:true });
 
 restoreWaves();
 
@@ -362,7 +370,7 @@ function advanceStory() {
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
-  waves.play().catch(()=>{});
+  tryPlayWaves();
   advanceStory();
 }, { passive:false });
 
@@ -382,7 +390,7 @@ document.addEventListener("pointerup", (e) => {
 
   if (dx > 10 || dy > 10) return;
 
-  waves.play().catch(()=>{});
+  tryPlayWaves();
   advanceStory();
 }, { passive:true });
 
