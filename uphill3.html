@@ -19,19 +19,12 @@ html, body {
   position: fixed;
   inset: 0;
 }
+body { touch-action: manipulation; }
 
 * {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
-  -webkit-user-select: none;
-}
-
-body { touch-action: manipulation; }
-
-img {
-  pointer-events: none;
-  -webkit-user-drag: none;
 }
 
 .app {
@@ -40,16 +33,6 @@ img {
   background: black;
   overflow: hidden;
 }
-
-/* ---------- GLOBAL SAFE HIDING ---------- */
-.is-hidden {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-.is-gone {
-  display: none !important;
-}
-/* -------------------------------------- */
 
 /* Stage scaling */
 .stage-wrapper {
@@ -93,15 +76,11 @@ img {
   line-height: 1.25;
   color: black;
 
-  opacity: 0;
-  transition: opacity 500ms ease;
   z-index: 25;
-
-  min-height: 96px;
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
+  text-align: center;
 }
-.story.visible { opacity: 1; }
 
 /* Buttons */
 .button {
@@ -122,22 +101,11 @@ img {
   place-items: center;
   font-family: "Press Start 2P";
   font-size: 26px;
-  letter-spacing: -1px;
   color: black;
   pointer-events: none;
   padding: 0 20px;
   text-align: center;
   line-height: 1.05;
-}
-
-/* Continue button */
-.continue-wrap {
-  position: absolute;
-  left: 50%;
-  bottom: 5px;
-  transform: translateX(-50%) scale(0.84);
-  z-index: 40;
-  transition: opacity 250ms ease;
 }
 
 /* Choices */
@@ -147,22 +115,14 @@ img {
   bottom: 5px;
   transform: translateX(-50%);
   display: flex;
-  gap: 40px;
-  opacity: 0;
-  transition: opacity 600ms ease;
+  gap: 30px;
   z-index: 30;
 }
-.choices.visible { opacity: 1; }
 
 .choice-link {
   text-decoration: none;
   transform: scale(0.84);
-  transform-origin: center center;
-  display: inline-block;
 }
-
-/* Slightly smaller labels so 3 fit better */
-.choices .button span { font-size: 20px; padding: 0 18px; }
 </style>
 </head>
 
@@ -172,40 +132,41 @@ img {
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
 
+      <!-- Replace image names if needed -->
       <img class="layer scene" src="uphill3i.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <div class="story visible" id="story"></div>
-
-      <div class="continue-wrap" id="continueWrap">
-        <div class="button" id="btnContinue">
-          <img src="stsbutton.png" alt="">
-          <span>Continue</span>
-        </div>
+      <div class="story">
+        The ridge levels out just enough for you to pause.<br><br>
+        Ahead, the trail splits into two ways up the next rise:<br>
+        one path climbs gently but is loose underfoot,<br>
+        the other cuts sharply to the right over angled rock.<br><br>
+        Both lead upward — they just ask different things of you.
       </div>
 
-      <!-- start fully non-clickable -->
-      <div class="choices is-hidden is-gone" id="choices">
-        <a class="choice-link" href="uphill2.html">
-          <div class="button">
-            <img src="stsbutton.png" alt="">
-            <span>Back</span>
-          </div>
-        </a>
+      <div class="choices">
 
-        <a class="choice-link" href="uphill4.html">
+        <a class="choice-link" href="uphill4.html" id="slow">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Take It Slow and Steady</span>
           </div>
         </a>
 
-        <a class="choice-link" href="uphill4.html">
+        <a class="choice-link" href="uphill4.html" id="scramble">
           <div class="button">
             <img src="stsbutton.png" alt="">
             <span>Scramble Up the Rocks</span>
           </div>
         </a>
+
+        <a class="choice-link" href="uphill2.html">
+          <div class="button">
+            <img src="stsbutton.png" alt="">
+            <span>Turn Back</span>
+          </div>
+        </a>
+
       </div>
 
     </div>
@@ -214,102 +175,33 @@ img {
 </div>
 
 <script>
-/* Prevent drag weirdness */
-document.addEventListener("dragstart", e => e.preventDefault());
-
-/* Utility hide/show */
-function hideAndGone(el, delay = 250) {
-  el.classList.add("is-hidden");
-  setTimeout(() => el.classList.add("is-gone"), delay);
-}
-function showFromGone(el) {
-  el.classList.remove("is-gone");
-  requestAnimationFrame(() => el.classList.remove("is-hidden"));
-}
-
 /* Scale stage */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
-  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-  stageWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = "translate(-50%, -50%) scale(" + s + ")";
 }
 window.addEventListener("resize", scaleStage);
-window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Story */
-const story = document.getElementById("story");
-const continueWrap = document.getElementById("continueWrap");
-const choices = document.getElementById("choices");
-const btnContinue = document.getElementById("btnContinue");
-
-const lines = [
-  "The ridge levels out just enough for you to pause.",
-  "Ahead, the trail splits into two ways up the next rise.",
-  "One path climbs gently but is loose underfoot.",
-  "The other cuts sharply to the right over angled rock.",
-  "Both lead upward, they just ask different things of you."
-];
-
-let line = 0;
-let char = 0;
-let typing = null;
-let isTyping = false;
-
-function showChoices() {
-  hideAndGone(continueWrap);
-  choices.classList.add("visible");
-  showFromGone(choices);
+/* Safe point add (prevents double counting) */
+function addOnce(key, amount) {
+  if (localStorage.getItem(key) === "1") return;
+  const scoreKey = key.replace("_once", "");
+  const current = parseInt(localStorage.getItem(scoreKey) || "0", 10);
+  localStorage.setItem(scoreKey, String(current + amount));
+  localStorage.setItem(key, "1");
 }
 
-function typeLine() {
-  if (typing) clearInterval(typing);
-  story.textContent = "";
-  char = 0;
-  isTyping = true;
+/* Choice wiring */
+document.getElementById("slow").addEventListener("click", () => {
+  addOnce("sts_wisdom_once_uphill3", 1);
+  addOnce("sts_comfort_once_uphill3", 1);
+});
 
-  typing = setInterval(() => {
-    char++;
-    story.textContent = lines[line].slice(0, char);
-
-    if (char >= lines[line].length) {
-      char = lines[line].length;
-      clearInterval(typing);
-      typing = null;
-      isTyping = false;
-      if (line === lines.length - 1) showChoices();
-    }
-  }, 24);
-}
-
-function advanceStory() {
-  if (isTyping) {
-    clearInterval(typing);
-    typing = null;
-    isTyping = false;
-    story.textContent = lines[line];
-    if (line === lines.length - 1) showChoices();
-    return;
-  }
-
-  if (line < lines.length - 1) {
-    line++;
-    typeLine();
-  } else {
-    showChoices();
-  }
-}
-
-/* Continue button */
-btnContinue.addEventListener("pointerdown", e => {
-  e.preventDefault();
-  e.stopPropagation();
-  advanceStory();
-}, { passive:false });
-
-/* Start */
-story.classList.add("visible");
-typeLine();
+document.getElementById("scramble").addEventListener("click", () => {
+  addOnce("sts_courage_once_uphill3", 1);
+});
 </script>
 </body>
 </html>
