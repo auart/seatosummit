@@ -237,17 +237,18 @@ img {
 }
 
 @keyframes rippleOutThin {
-  0%   { opacity: 0.75; transform: translate(-50%, -50%) scale(0.12); }
-  65%  { opacity: 0.22; }
+  0%   { opacity: 0.70; transform: translate(-50%, -50%) scale(0.12); }
+  70%  { opacity: 0.18; }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(180); }
 }
 
-.ripples.on .r1 { animation: rippleOutThin 1200ms ease-out forwards; }
-.ripples.on .r2 { animation: rippleOutThin 1320ms ease-out 120ms forwards; }
-.ripples.on .r3 { animation: rippleOutThin 1440ms ease-out 240ms forwards; }
-.ripples.on .r4 { animation: rippleOutThin 1560ms ease-out 360ms forwards; }
-.ripples.on .r5 { animation: rippleOutThin 1680ms ease-out 480ms forwards; }
-.ripples.on .r6 { animation: rippleOutThin 1800ms ease-out 600ms forwards; }
+/* Slower echo */
+.ripples.on .r1 { animation: rippleOutThin 2200ms ease-out forwards; }
+.ripples.on .r2 { animation: rippleOutThin 2500ms ease-out 220ms forwards; }
+.ripples.on .r3 { animation: rippleOutThin 2800ms ease-out 440ms forwards; }
+.ripples.on .r4 { animation: rippleOutThin 3100ms ease-out 660ms forwards; }
+.ripples.on .r5 { animation: rippleOutThin 3400ms ease-out 880ms forwards; }
+.ripples.on .r6 { animation: rippleOutThin 3700ms ease-out 1100ms forwards; }
 </style>
 </head>
 
@@ -262,7 +263,7 @@ img {
       <img class="layer frame" src="stsframe3.png" alt="">
 
       <!-- Ripple origin (tweak these two % if needed) -->
-      <div class="ripples" id="ripples" style="left:49.2%; top:55.4%;">
+      <div class="ripples" id="ripples" style="left:52.9%; top:55.9%;">
         <div class="ripple-ring r1"></div>
         <div class="ripple-ring r2"></div>
         <div class="ripple-ring r3"></div>
