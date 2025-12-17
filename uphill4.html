@@ -184,6 +184,8 @@ img { pointer-events: none; -webkit-user-drag: none; }
 
     </div>
   </div>
+
+  <audio id="wind" src="wind.mp3" preload="auto" loop playsinline></audio>
 </div>
 
 <script>
@@ -210,6 +212,38 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
+/* ---------- WIND AUDIO (start on first user gesture, remember volume) ---------- */
+const wind = document.getElementById("wind");
+const WIND_VOL_KEY = "sts_wind_vol_v1";
+
+function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+
+function restoreWindStateOnly() {
+  const savedVol = parseFloat(localStorage.getItem(WIND_VOL_KEY));
+  wind.volume = Number.isFinite(savedVol) ? clamp(savedVol,0,1) : 0.35;
+}
+restoreWindStateOnly();
+
+setInterval(() => {
+  if (!wind.paused) localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
+}, 400);
+
+window.addEventListener("beforeunload", () => {
+  localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
+});
+document.addEventListener("visibilitychange", () => {
+  localStorage.setItem(WIND_VOL_KEY, String(wind.volume));
+});
+
+let audioUnlocked = false;
+function unlockWind() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  wind.play().catch(()=>{});
+}
+document.addEventListener("pointerdown", unlockWind, { capture:true, once:true });
+document.addEventListener("keydown", unlockWind, { capture:true, once:true });
+
 /* Story */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
@@ -217,11 +251,8 @@ const choices = document.getElementById("choices");
 const btnContinue = document.getElementById("btnContinue");
 
 const lines = [
-  "The two routes meet again on a wider shelf of rock.",
   "You step forward, and the ground behind you suddenly crumbles away.",
-  "Loose stone slides down the slope until it disappears far below.",
   "Only the narrow trail ahead remains solid.",
-  "The summit waits above you.",
   "There is no way to return the way you came."
 ];
 
@@ -278,6 +309,7 @@ function advanceStory() {
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
+  unlockWind();
   advanceStory();
 }, { passive: false });
 
