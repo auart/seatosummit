@@ -259,7 +259,7 @@ function clamp(n, a, b) { return Math.max(a, Math.min(b, n)); }
 
 function restoreWaves() {
   const savedVol = parseFloat(localStorage.getItem(WAVE_VOL_KEY));
-  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.35;
+  waves.volume = Number.isFinite(savedVol) ? clamp(savedVol, 0, 1) : 0.05;
 
   const savedT = parseFloat(localStorage.getItem(WAVE_TIME_KEY));
   if (Number.isFinite(savedT) && savedT > 0) {
