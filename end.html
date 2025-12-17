@@ -86,7 +86,7 @@ body { touch-action: manipulation; }
 }
 .story-line.visible { opacity: 1; }
 
-/* Button */
+/* Begin Again */
 .actions {
   position: absolute;
   left: 50%;
@@ -94,9 +94,13 @@ body { touch-action: manipulation; }
   transform: translate(-50%, -50%) scale(0.9);
   z-index: 30;
   opacity: 0;
+  pointer-events: none;          /* CRITICAL FIX */
   transition: opacity 1200ms ease;
 }
-.actions.visible { opacity: 1; }
+.actions.visible {
+  opacity: 1;
+  pointer-events: auto;          /* ENABLE WHEN SHOWN */
+}
 
 .button {
   position: relative;
@@ -135,6 +139,7 @@ body { touch-action: manipulation; }
 <div class="app">
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
+
       <img class="layer" id="endingImage" src="endi.png" alt="">
 
       <div class="story" id="story"></div>
@@ -142,7 +147,7 @@ body { touch-action: manipulation; }
       <div class="actions" id="actions">
         <a href="index.html" id="beginAgain">
           <div class="button">
-            <img src="stsbutton.png">
+            <img src="stsbutton.png" alt="">
             <span>Begin Again</span>
           </div>
         </a>
@@ -247,7 +252,7 @@ const sound = document.getElementById("endSound");
 let index = 0;
 let finished = false;
 
-/* Build lines */
+/* Build text */
 lines.forEach(text => {
   const div = document.createElement("div");
   div.className = "story-line";
@@ -260,7 +265,7 @@ setTimeout(() => image.classList.add("visible"), 400);
 sound.volume = 0.6;
 sound.play().catch(()=>{});
 
-/* Click anywhere to advance */
+/* Click anywhere */
 document.addEventListener("click", (e) => {
   if (e.target.closest("#beginAgain")) return;
 
