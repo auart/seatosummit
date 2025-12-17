@@ -19,7 +19,6 @@ html, body {
   position: fixed;
   inset: 0;
 }
-body { touch-action: manipulation; }
 
 * {
   overscroll-behavior: none;
@@ -27,14 +26,14 @@ body { touch-action: manipulation; }
   user-select: none;
 }
 
+body { touch-action: manipulation; }
+
 .app {
   position: fixed;
   inset: 0;
   background: black;
-  overflow: hidden;
 }
 
-/* Stage scaling */
 .stage-wrapper {
   position: absolute;
   left: 50%;
@@ -63,35 +62,33 @@ body { touch-action: manipulation; }
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* Story */
 .story {
   position: absolute;
   left: 50%;
   bottom: 180px;
   transform: translateX(-50%);
   width: 900px;
-
-  font-family: "Silkscreen";
+  font-family: Silkscreen;
   font-size: 30px;
   line-height: 1.25;
   color: black;
-
   z-index: 25;
+  min-height: 96px;
   padding: 16px 50px 0 50px;
   box-sizing: border-box;
-  text-align: center;
+  opacity: 0;
+  transition: opacity 400ms ease;
 }
+.story.visible { opacity: 1; }
 
-/* Buttons */
 .button {
   position: relative;
-  display: inline-block;
   cursor: pointer;
+  display: inline-block;
 }
 .button img {
   width: 420px;
   image-rendering: pixelated;
-  display: block;
   pointer-events: none;
 }
 .button span {
@@ -101,22 +98,36 @@ body { touch-action: manipulation; }
   place-items: center;
   font-family: "Press Start 2P";
   font-size: 26px;
+  letter-spacing: -1px;
   color: black;
   pointer-events: none;
-  padding: 0 20px;
   text-align: center;
-  line-height: 1.05;
+  padding: 0 20px;
 }
 
-/* Choices */
+.continue-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%) scale(0.84);
+  z-index: 40;
+}
+
 .choices {
   position: absolute;
   left: 50%;
   bottom: 5px;
   transform: translateX(-50%);
   display: flex;
-  gap: 30px;
+  gap: 24px;
   z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms ease;
+}
+.choices.visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .choice-link {
@@ -128,54 +139,43 @@ body { touch-action: manipulation; }
 
 <body>
 <div class="app">
-
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
 
-      <!-- Replace image names if needed -->
       <img class="layer scene" src="uphill3i.png" alt="">
       <img class="layer frame" src="stsframe3.png" alt="">
 
-      <div class="story">
-        The ridge levels out just enough for you to pause.<br><br>
-        Ahead, the trail splits into two ways up the next rise:<br>
-        one path climbs gently but is loose underfoot,<br>
-        the other cuts sharply to the right over angled rock.<br><br>
-        Both lead upward — they just ask different things of you.
+      <div class="story" id="story"></div>
+
+      <div class="continue-wrap" id="continueWrap">
+        <div class="button" id="btnContinue">
+          <img src="stsbutton.png" alt="">
+          <span>Continue</span>
+        </div>
       </div>
 
-      <div class="choices">
-
-        <a class="choice-link" href="uphill4.html" id="slow">
+      <div class="choices" id="choices">
+        <a class="choice-link" href="summit1.html" id="btnSlow">
           <div class="button">
             <img src="stsbutton.png" alt="">
-            <span>Take It Slow and Steady</span>
+            <span>Take it slow</span>
           </div>
         </a>
 
-        <a class="choice-link" href="uphill4.html" id="scramble">
+        <a class="choice-link" href="summit1.html" id="btnScramble">
           <div class="button">
             <img src="stsbutton.png" alt="">
-            <span>Scramble Up the Rocks</span>
+            <span>Scramble up the rocks</span>
           </div>
         </a>
-
-        <a class="choice-link" href="uphill2.html">
-          <div class="button">
-            <img src="stsbutton.png" alt="">
-            <span>Turn Back</span>
-          </div>
-        </a>
-
       </div>
 
     </div>
   </div>
-
 </div>
 
 <script>
-/* Scale stage */
+/* Scale */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
   const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
@@ -184,24 +184,96 @@ function scaleStage() {
 window.addEventListener("resize", scaleStage);
 scaleStage();
 
-/* Safe point add (prevents double counting) */
-function addOnce(key, amount) {
-  if (localStorage.getItem(key) === "1") return;
-  const scoreKey = key.replace("_once", "");
-  const current = parseInt(localStorage.getItem(scoreKey) || "0", 10);
-  localStorage.setItem(scoreKey, String(current + amount));
-  localStorage.setItem(key, "1");
+/* Story */
+const story = document.getElementById("story");
+const btnContinue = document.getElementById("btnContinue");
+const continueWrap = document.getElementById("continueWrap");
+const choices = document.getElementById("choices");
+
+const lines = [
+  "The trail steepens as the summit draws closer.",
+  "Loose stones shift beneath your feet.",
+  "You feel the strain in your legs, and the wind presses harder.",
+  "There are two ways forward."
+];
+
+let line = 0;
+let char = 0;
+let typing = null;
+
+function typeLine() {
+  if (typing) clearInterval(typing);
+  story.textContent = "";
+  char = 0;
+
+  typing = setInterval(() => {
+    char++;
+    story.textContent = lines[line].slice(0, char);
+    if (char >= lines[line].length) {
+      clearInterval(typing);
+      typing = null;
+      if (line === lines.length - 1) showChoices();
+    }
+  }, 24);
 }
 
-/* Choice wiring */
-document.getElementById("slow").addEventListener("click", () => {
-  addOnce("sts_wisdom_once_uphill3", 1);
-  addOnce("sts_comfort_once_uphill3", 1);
-});
+function showChoices() {
+  continueWrap.style.display = "none";
+  choices.classList.add("visible");
+}
 
-document.getElementById("scramble").addEventListener("click", () => {
-  addOnce("sts_courage_once_uphill3", 1);
-});
+function advanceStory() {
+  if (typing) {
+    clearInterval(typing);
+    typing = null;
+    story.textContent = lines[line];
+    if (line === lines.length - 1) showChoices();
+    return;
+  }
+
+  if (line < lines.length - 1) {
+    line++;
+    typeLine();
+  }
+}
+
+btnContinue.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  advanceStory();
+}, { passive:false });
+
+story.classList.add("visible");
+typeLine();
+
+/* POINTS + NAV (CRITICAL FIX) */
+function addOnce(flag, key, amt) {
+  if (localStorage.getItem(flag) === "1") return;
+  const v = parseInt(localStorage.getItem(key) || "0", 10);
+  localStorage.setItem(key, String(v + amt));
+  localStorage.setItem(flag, "1");
+}
+
+function go(url) {
+  window.location.href = url;
+}
+
+const btnSlow = document.getElementById("btnSlow");
+const btnScramble = document.getElementById("btnScramble");
+
+btnSlow.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  addOnce("sts_uphill3_slow", "sts_wisdom", 1);
+  addOnce("sts_uphill3_slow_c", "sts_comfort", 1);
+  go(btnSlow.getAttribute("href"));
+}, { passive:false });
+
+btnScramble.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  addOnce("sts_uphill3_scramble", "sts_courage", 1);
+  go(btnScramble.getAttribute("href"));
+}, { passive:false });
 </script>
 </body>
 </html>
