@@ -75,6 +75,16 @@ img {
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  background: rgba(0,0,0,0.40);
+  z-index: 5;
+  pointer-events: none;
+}
+
 /* Story */
 .story {
   position: absolute;
@@ -178,6 +188,7 @@ img {
     <div class="stage">
 
       <img class="layer scene" src="loop2i.png" alt="">
+      <div class="overlay" aria-hidden="true"></div>
       <img class="layer frame" src="stsframe3.png" alt="">
 
       <div class="story visible" id="story"></div>
