@@ -212,22 +212,64 @@ window.addEventListener("resize", scaleStage);
 window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* Wind audio: try immediately, fallback to first gesture */
+/* ---------- SEAMLESS AUDIO (wind resumes across pages) ---------- */
 const wind = document.getElementById("wind");
-function tryPlayWind() {
-  if (!wind) return;
-  wind.muted = false;
-  wind.volume = 0.45;
+const TIME_KEY = "sts_wind_time_v1";
+const SRC_KEY  = "sts_wind_src_v1";
+const VOL_KEY  = "sts_wind_vol_v1";
+
+function clamp(n,a,b){ return Math.max(a, Math.min(b,n)); }
+
+function restoreAudio() {
+  const savedVol = parseFloat(localStorage.getItem(VOL_KEY));
+  wind.volume = Number.isFinite(savedVol) ? clamp(savedVol,0,1) : 0.45;
+
+  const savedSrc = localStorage.getItem(SRC_KEY);
+  const savedTime = parseFloat(localStorage.getItem(TIME_KEY));
+  const thisSrc = wind.getAttribute("src");
+
+  if (savedSrc === thisSrc && Number.isFinite(savedTime) && savedTime > 0) {
+    try { wind.currentTime = savedTime; } catch(e){}
+  }
+
   const p = wind.play();
-  if (p && p.catch) p.catch(()=>{});
+  if (p && typeof p.catch === "function") {
+    p.catch(() => {
+      const resume = () => wind.play().catch(()=>{});
+      document.addEventListener("pointerdown", resume, { once:true, capture:true });
+      document.addEventListener("keydown", resume, { once:true, capture:true });
+    });
+  }
 }
 
-/* Attempt immediate play (works if audio already unlocked) */
-tryPlayWind();
+function startSavingAudio() {
+  setInterval(() => {
+    if (!wind.paused && Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(VOL_KEY, String(wind.volume));
+      localStorage.setItem(SRC_KEY, wind.getAttribute("src"));
+    }
+  }, 250);
 
-/* Fallback: first user gesture unlock */
-document.addEventListener("pointerdown", tryPlayWind, { once:true, capture:true });
-document.addEventListener("keydown", tryPlayWind, { once:true, capture:true });
+  window.addEventListener("beforeunload", () => {
+    if (Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(VOL_KEY, String(wind.volume));
+      localStorage.setItem(SRC_KEY, wind.getAttribute("src"));
+    }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(VOL_KEY, String(wind.volume));
+      localStorage.setItem(SRC_KEY, wind.getAttribute("src"));
+    }
+  });
+}
+
+restoreAudio();
+startSavingAudio();
 
 /* Story */
 const story = document.getElementById("story");
@@ -296,7 +338,7 @@ function advanceStory() {
 btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   e.stopPropagation();
-  tryPlayWind();
+  wind.play().catch(()=>{});
   advanceStory();
 }, { passive:false });
 
@@ -313,7 +355,7 @@ document.addEventListener("pointerup", (e) => {
   const dx = Math.abs(e.clientX - downX);
   const dy = Math.abs(e.clientY - downY);
   if (dx > 10 || dy > 10) return;
-  tryPlayWind();
+  wind.play().catch(()=>{});
   advanceStory();
 }, { passive:true });
 
