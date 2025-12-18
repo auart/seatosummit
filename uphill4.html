@@ -38,6 +38,7 @@ img { pointer-events: none; -webkit-user-drag: none; }
   overflow: hidden;
 }
 
+/* safe hide helpers */
 .is-hidden { opacity: 0 !important; pointer-events: none !important; }
 .is-gone { display: none !important; }
 
@@ -69,22 +70,30 @@ img { pointer-events: none; -webkit-user-drag: none; }
 .scene { z-index: 1; }
 .frame { z-index: 10; }
 
-/* Story */
+/* Story (LOCKED TO TOP OF BOX, like Uphill1) */
 .story {
   position: absolute;
   left: 50%;
   bottom: 180px;
   transform: translateX(-50%);
   width: 900px;
+
   font-family: "Silkscreen";
   font-size: 30px;
   line-height: 1.25;
   color: black;
+
   opacity: 0;
   transition: opacity 500ms ease;
   z-index: 25;
+
   min-height: 96px;
   padding: 16px 50px 0 50px;
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
 .story.visible { opacity: 1; }
 
@@ -104,10 +113,16 @@ img { pointer-events: none; -webkit-user-drag: none; }
   inset: 0;
   display: grid;
   place-items: center;
+
   font-family: "Press Start 2P";
   font-size: 26px;
+  letter-spacing: -1px;
   color: black;
+
   pointer-events: none;
+  padding: 0 20px;
+  text-align: center;
+  line-height: 1.05;
 }
 
 /* Continue */
@@ -117,6 +132,7 @@ img { pointer-events: none; -webkit-user-drag: none; }
   bottom: 5px;
   transform: translateX(-50%) scale(0.84);
   z-index: 40;
+  transition: opacity 250ms ease;
 }
 
 /* Choices */
@@ -128,15 +144,17 @@ img { pointer-events: none; -webkit-user-drag: none; }
   display: flex;
   gap: 40px;
   opacity: 0;
+  transition: opacity 600ms ease;
+  z-index: 30;
   pointer-events: none;
 }
-.choices.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
+.choices.visible { opacity: 1; pointer-events: auto; }
+
 .choice-link {
   text-decoration: none;
   transform: scale(0.84);
+  transform-origin: center center;
+  display: inline-block;
 }
 </style>
 </head>
@@ -147,14 +165,14 @@ img { pointer-events: none; -webkit-user-drag: none; }
   <div class="stage-wrapper" id="stageWrapper">
     <div class="stage">
 
-      <img class="layer scene" src="uphill4i.png">
-      <img class="layer frame" src="stsframe3.png">
+      <img class="layer scene" src="uphill4i.png" alt="">
+      <img class="layer frame" src="stsframe3.png" alt="">
 
       <div class="story visible" id="story"></div>
 
       <div class="continue-wrap" id="continueWrap">
         <div class="button" id="btnContinue">
-          <img src="stsbutton.png">
+          <img src="stsbutton.png" alt="">
           <span>Continue</span>
         </div>
       </div>
@@ -162,7 +180,7 @@ img { pointer-events: none; -webkit-user-drag: none; }
       <div class="choices is-hidden is-gone" id="choices">
         <a class="choice-link" href="uphill5.html">
           <div class="button">
-            <img src="stsbutton.png">
+            <img src="stsbutton.png" alt="">
             <span>Continue Upward</span>
           </div>
         </a>
@@ -172,20 +190,40 @@ img { pointer-events: none; -webkit-user-drag: none; }
   </div>
 
   <audio id="wind" src="wind.mp3" preload="auto" loop playsinline></audio>
-
 </div>
 
 <script>
+/* HARD scroll lock */
+window.addEventListener("wheel", e => e.preventDefault(), { passive:false });
+window.addEventListener("touchmove", e => e.preventDefault(), { passive:false });
+window.addEventListener("keydown", e => {
+  if (["ArrowUp","ArrowDown","Space","PageUp","PageDown"].includes(e.code)) e.preventDefault();
+});
+
+/* Prevent weird drag behavior */
+document.addEventListener("dragstart", (e) => e.preventDefault());
+
+/* Hide helpers */
+function hideAndGone(el, ms = 250) {
+  el.classList.add("is-hidden");
+  setTimeout(() => el.classList.add("is-gone"), ms);
+}
+function showFromGone(el) {
+  el.classList.remove("is-gone");
+  requestAnimationFrame(() => el.classList.remove("is-hidden"));
+}
+
 /* Scale */
 const stageWrapper = document.getElementById("stageWrapper");
 function scaleStage() {
-  const s = Math.min(innerWidth / 1920, innerHeight / 1080);
-  stageWrapper.style.transform = `translate(-50%, -50%) scale(${s})`;
+  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  stageWrapper.style.transform = `translate(-50%, -50%) scale(${scale})`;
 }
-addEventListener("resize", scaleStage);
+window.addEventListener("resize", scaleStage);
+window.addEventListener("pageshow", () => setTimeout(scaleStage, 60));
 scaleStage();
 
-/* ---------- SEAMLESS AUDIO (same system as Uphill1) ---------- */
+/* ---------- SEAMLESS AUDIO (same system as Uphill1, but wind.mp3) ---------- */
 const wind = document.getElementById("wind");
 const TIME_KEY = "sts_wind_time_v1";
 const SRC_KEY  = "sts_wind_src_v1";
@@ -200,31 +238,51 @@ function restoreAudio() {
   const savedSrc = localStorage.getItem(SRC_KEY);
   const savedTime = parseFloat(localStorage.getItem(TIME_KEY));
 
-  if (savedSrc === wind.src && Number.isFinite(savedTime)) {
+  /* Match Uphill1 behavior: compare against wind.src */
+  if (savedSrc === wind.src && Number.isFinite(savedTime) && savedTime > 0) {
     try { wind.currentTime = savedTime; } catch(e){}
   }
 
   const p = wind.play();
-  if (p && p.catch) {
+  if (p && typeof p.catch === "function") {
     p.catch(() => {
       const resume = () => wind.play().catch(()=>{});
-      document.addEventListener("pointerdown", resume, { once:true });
-      document.addEventListener("keydown", resume, { once:true });
+      document.addEventListener("pointerdown", resume, { once:true, capture:true });
+      document.addEventListener("keydown", resume, { once:true, capture:true });
     });
   }
 }
 
-setInterval(() => {
-  if (!wind.paused) {
-    localStorage.setItem(TIME_KEY, wind.currentTime);
-    localStorage.setItem(VOL_KEY, wind.volume);
-    localStorage.setItem(SRC_KEY, wind.src);
-  }
-}, 250);
+function startSavingAudio() {
+  setInterval(() => {
+    if (!wind.paused && Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(VOL_KEY, String(wind.volume));
+      localStorage.setItem(SRC_KEY, wind.src);
+    }
+  }, 250);
+
+  window.addEventListener("beforeunload", () => {
+    if (Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(VOL_KEY, String(wind.volume));
+      localStorage.setItem(SRC_KEY, wind.src);
+    }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (Number.isFinite(wind.currentTime)) {
+      localStorage.setItem(TIME_KEY, String(wind.currentTime));
+      localStorage.setItem(VOL_KEY, String(wind.volume));
+      localStorage.setItem(SRC_KEY, wind.src);
+    }
+  });
+}
 
 restoreAudio();
+startSavingAudio();
 
-/* ---------- STORY ---------- */
+/* ---------- STORY (click-anywhere, spam-click safe) ---------- */
 const story = document.getElementById("story");
 const continueWrap = document.getElementById("continueWrap");
 const choices = document.getElementById("choices");
@@ -236,41 +294,60 @@ const lines = [
   "There is no way to return the way you came."
 ];
 
-let line = 0, char = 0, typing = null, isTyping = false;
+let line = 0;
+let char = 0;
+let typing = null;
+let isTyping = false;
+let showingChoices = false;
 
 function showChoices() {
-  continueWrap.remove();
+  if (showingChoices) return;
+  showingChoices = true;
+
+  hideAndGone(continueWrap);
   choices.classList.add("visible");
-  choices.classList.remove("is-hidden","is-gone");
+  showFromGone(choices);
 }
 
 function typeLine() {
   if (typing) clearInterval(typing);
+  typing = null;
+
   story.textContent = "";
   char = 0;
   isTyping = true;
 
+  const current = lines[line];
+
   typing = setInterval(() => {
     char++;
-    story.textContent = lines[line].slice(0,char);
-    if (char >= lines[line].length) {
+    story.textContent = current.slice(0, char);
+
+    if (char >= current.length) {
+      char = current.length;
       clearInterval(typing);
       typing = null;
       isTyping = false;
+
       if (line === lines.length - 1) showChoices();
     }
   }, 24);
 }
 
 function advanceStory() {
+  const current = lines[line];
+
   if (isTyping) {
-    clearInterval(typing);
+    if (typing) clearInterval(typing);
     typing = null;
     isTyping = false;
-    story.textContent = lines[line];
+    char = current.length;
+    story.textContent = current;
+
     if (line === lines.length - 1) showChoices();
     return;
   }
+
   if (line < lines.length - 1) {
     line++;
     typeLine();
@@ -279,25 +356,32 @@ function advanceStory() {
   }
 }
 
-btnContinue.addEventListener("pointerdown", e => {
+/* Continue button */
+btnContinue.addEventListener("pointerdown", (e) => {
   e.preventDefault();
+  e.stopPropagation();
   advanceStory();
 }, { passive:false });
 
-/* Click anywhere */
-let dx = 0, dy = 0;
-document.addEventListener("pointerdown", e => {
+/* Click anywhere to advance (don’t steal clicks on links or Continue) */
+let downX = 0, downY = 0;
+document.addEventListener("pointerdown", (e) => {
   if (e.target.closest("a") || e.target.closest("#btnContinue")) return;
-  dx = e.clientX;
-  dy = e.clientY;
-});
-document.addEventListener("pointerup", e => {
-  if (e.target.closest("a") || e.target.closest("#btnContinue")) return;
-  if (Math.abs(e.clientX-dx) < 10 && Math.abs(e.clientY-dy) < 10) {
-    advanceStory();
-  }
-});
+  downX = e.clientX;
+  downY = e.clientY;
+}, { passive:true });
 
+document.addEventListener("pointerup", (e) => {
+  if (e.target.closest("a") || e.target.closest("#btnContinue")) return;
+
+  const dx = Math.abs(e.clientX - downX);
+  const dy = Math.abs(e.clientY - downY);
+  if (dx > 10 || dy > 10) return;
+
+  advanceStory();
+}, { passive:true });
+
+/* Start */
 story.classList.add("visible");
 typeLine();
 </script>
