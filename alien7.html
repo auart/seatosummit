@@ -200,7 +200,7 @@ img { pointer-events: none; -webkit-user-drag: none; }
       </div>
 
       <div class="choices is-hidden is-gone" id="choices">
-        <a class="choice-link" href="#" id="linkContinue">
+        <a class="choice-link" href="alien8.html" id="linkContinue">
           <div class="button">
             <img src="stsalienbutton.png">
             <span>Continue</span>
@@ -360,10 +360,6 @@ document.addEventListener("pointerup",e=>{
   if(e.target.closest("a")||e.target.closest("#btnContinue"))return;
   if(Math.abs(e.clientX-x)<10&&Math.abs(e.clientY-y)<10) advanceStory();
 });
-
-document.getElementById("linkContinue").addEventListener("pointerdown", e=>{
-  e.preventDefault();
-},{passive:false});
 
 story.classList.add("visible");
 typeLine();
